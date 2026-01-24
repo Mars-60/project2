@@ -2,9 +2,17 @@ const passport=require("passport");
 const jwt=require("jsonwebtoken");
 const router=require("express").Router();
 const {signup,login}=require("../controllers/authController.js");
+const authMiddleware=require("../middlewares/authMiddleware.js");
 
 router.post("/signup",signup);
 router.post("/login",login);
+
+router.get("/me",authMiddleware,async(req,res)=>{
+    res.json({
+        message:"You are authenticated",
+        userId:req.user.id,
+    });
+});
 
 //Google
 router.get("/google",
@@ -31,5 +39,7 @@ router.get("/github/callback",
         res.json({token});
     }
 );
+
+
 
 module.exports=router;

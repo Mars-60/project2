@@ -11,5 +11,6 @@ app.use(express.json());
 app.use(passport.initialize());
 
 app.use("/api/auth",require("./routes/authRoutes.js"));
+app.use("/api/repo",require("./routes/repoRoutes.js"));
 
 module.exports=app;

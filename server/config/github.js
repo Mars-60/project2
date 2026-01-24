@@ -10,14 +10,38 @@ passport.use(
         callbackURL: "/api/auth/github/callback",
     },
     async(_,__,profile,done)=>{
+        try{
+          const email=profile.emails?.[0]?.value;
+
+          //Check if user exists with this GitHub ID
         let user= await User.findOne({githubId: profile.id});
 
-        if(!user){
-            user=await User.create({
-                githubId: profile.id,
-                provider: "github",
-            });
+        if(user) return done(null,user);
+
+        //If email exists,link GitHub to existing account
+        if(email) {
+            user=await User.findOne({email});
+           
+            if(user){
+                user.githubId=profile.id;
+                user.provider="github";
+                await user.save();
+                return done(null,user);
+            }
         }
+
+        //Else create new user
+        user=await User.create({
+            githubId:profile.id,
+            email,
+            provider:"github",
+        });
+        
+
         done(null,user);
-    })
+    }catch(err){
+        done(err,null);
+    }
+}
+    )
 );
