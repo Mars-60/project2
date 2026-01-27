@@ -39,14 +39,17 @@ function HomeScreen({ onAnalyze }) {
           }}
         >
           <Sparkles color="#22c55e" size={36} />
-          <h1
-            style={{
-              fontFamily: "JetBrains Mono, monospace",
-              fontSize: "42px",
-            }}
-          >
-            Gitzy
-          </h1>
+     <h1
+  style={{
+    fontSize: "42px",
+    fontWeight: "600",
+    letterSpacing: "-0.02em",
+  }}
+>
+  Gitzy
+</h1>
+
+
         </div>
 
         <p

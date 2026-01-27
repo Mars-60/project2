@@ -148,7 +148,15 @@ exports.getRepoTree = async (req, res) => {
 exports.getFullRepoTree = async (req, res) => {
   try {
     const { owner, repo } = req.params;
-    const depth = Number(req.query.depth) || 2;
+    const MAX_DEPTH = 3; // hard safety cap
+    let depth = Number(req.query.depth) || 2;
+
+    // SAFEGUARD: prevent deep recursion
+    if (depth > MAX_DEPTH) {
+      return res.status(400).json({
+        message: `Max depth allowed is ${MAX_DEPTH}`,
+      });
+    }
 
     const cacheKey=`${owner}/${repo}:tree:${depth}`;
 
