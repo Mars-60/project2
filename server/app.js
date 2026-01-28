@@ -12,6 +12,6 @@ app.use(passport.initialize());
 
 app.use("/api/auth",require("./routes/authRoutes.js"));
 app.use("/api/repo",require("./routes/repoRoutes.js"));
-app.use("/api/ai", require("./routes/aiRoutes.js"));
+//app.use("/api/ai", require("./routes/aiRoutes.js"));
 
 module.exports=app;

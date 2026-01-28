@@ -1,25 +1,401 @@
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Settings, User, ChevronRight, ChevronDown, FileText, Folder, Send } from "lucide-react";
 
+// ============================================
+// PARSE GITHUB URL
+// ============================================
+function parseGitHubUrl(url) {
+  // Remove trailing slash
+  url = url.replace(/\/$/, '');
+  
+  // Extract owner/repo from various formats
+  const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+  if (match) {
+    return { 
+      owner: match[1], 
+      repo: match[2].replace(/\.git$/, '') 
+    };
+  }
+  
+  // Direct format: owner/repo
+  const directMatch = url.match(/^([^\/]+)\/([^\/]+)$/);
+  if (directMatch) {
+    return { owner: directMatch[1], repo: directMatch[2] };
+  }
+  
+  return null;
+}
+
+// ============================================
+// WORKSPACE NAVBAR
+// ============================================
+function WorkspaceNavbar({ repoUrl }) {
+  return (
+    <nav className="h-16 flex items-center justify-between px-6 bg-[#0b0b0f]/90 backdrop-blur-md border-b border-[#27272a]/50 sticky top-0 z-50">
+      {/* Left: Brand */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center shadow-lg shadow-[#22c55e]/20">
+          <Sparkles size={18} className="text-[#0b0b0f]" strokeWidth={2.5} />
+        </div>
+        <span className="text-lg font-semibold text-[#e5e7eb] tracking-tight">
+          Gitzy
+        </span>
+      </div>
+
+      {/* Center: Repo URL */}
+      <div className="max-w-md px-4 py-2 rounded-lg bg-[#18181b]/60 border border-[#27272a]/40">
+        <div className="flex items-center gap-2 text-xs text-[#9ca3af]">
+          <span className="opacity-60">Repository:</span>
+          <span className="text-[#d1d5db] font-mono truncate">{repoUrl}</span>
+        </div>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2">
+        <button className="p-2 rounded-lg hover:bg-[#27272a]/40 transition-colors text-[#9ca3af] hover:text-[#e5e7eb]">
+          <Settings size={18} />
+        </button>
+        <button className="p-2 rounded-lg hover:bg-[#27272a]/40 transition-colors text-[#9ca3af] hover:text-[#e5e7eb]">
+          <User size={18} />
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+// ============================================
+// FILE/FOLDER ITEM COMPONENT
+// ============================================
+function FileTreeItem({ item, level, selectedFile, onFileSelect, onFolderToggle, expandedFolders }) {
+  const isDir = item.type === "dir";
+  const isExpanded = expandedFolders.has(item.path);
+  const isSelected = selectedFile?.path === item.path;
+
+  return (
+    <div>
+      {/* File/Folder Button */}
+      <button
+        onClick={() => {
+          if (isDir) {
+            onFolderToggle(item);
+          } else {
+            onFileSelect(item);
+          }
+        }}
+        style={{ paddingLeft: `${level * 12 + 12}px` }}
+        className={`
+          w-full flex items-center gap-2 py-2 pr-3 rounded-md text-left
+          transition-all duration-150 group relative
+          ${isSelected 
+            ? 'bg-[#22c55e]/10 text-[#22c55e]' 
+            : 'text-[#d1d5db] hover:bg-[#27272a]/40 hover:text-[#e5e7eb] cursor-pointer'
+          }
+        `}
+      >
+        {/* Active indicator */}
+        {isSelected && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[#22c55e] rounded-r" />
+        )}
+
+        {/* Chevron for folders */}
+        {isDir && (
+          <div className="w-4 flex items-center justify-center">
+            {isExpanded ? (
+              <ChevronDown size={14} className="flex-shrink-0 opacity-60" />
+            ) : (
+              <ChevronRight size={14} className="flex-shrink-0 opacity-60" />
+            )}
+          </div>
+        )}
+
+        {/* Icon */}
+        {isDir ? (
+          <Folder size={16} className="flex-shrink-0 opacity-60 text-[#22c55e]" />
+        ) : (
+          <FileText size={16} className="flex-shrink-0 opacity-60" />
+        )}
+
+        {/* Name */}
+        <span className="text-xs font-mono truncate flex-1">
+          {item.name}
+        </span>
+      </button>
+
+      {/* Children (if folder is expanded) */}
+      {isDir && isExpanded && item.children && (
+        <div>
+          {item.children.map((child, idx) => (
+            <FileTreeItem
+              key={idx}
+              item={child}
+              level={level + 1}
+              selectedFile={selectedFile}
+              onFileSelect={onFileSelect}
+              onFolderToggle={onFolderToggle}
+              expandedFolders={expandedFolders}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// REPO SIDEBAR
+// ============================================
+function RepoSidebar({ tree, loading, selectedFile, onFileSelect, onFolderToggle, expandedFolders }) {
+  return (
+    <aside className="w-64 bg-[#0f0f11] border-r border-[#27272a]/50 flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-[#27272a]/30">
+        <h2 className="text-[10px] uppercase tracking-[0.1em] text-[#6b7280] font-semibold mb-3">
+          EXPLORER
+        </h2>
+        <div className="flex items-center gap-2 text-[#9ca3af]">
+          <Folder size={16} className="text-[#22c55e]" />
+          <span className="text-xs font-medium">Repository Files</span>
+        </div>
+      </div>
+
+      {/* File Tree */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        {loading ? (
+          <div className="p-4 text-center">
+            <div className="w-5 h-5 border-2 border-[#22c55e] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-xs text-[#6b7280]">Loading files...</p>
+          </div>
+        ) : tree.length === 0 ? (
+          <div className="p-4 text-center">
+            <p className="text-xs text-[#6b7280]">No files found</p>
+          </div>
+        ) : (
+          tree.map((item, idx) => (
+            <FileTreeItem
+              key={idx}
+              item={item}
+              level={0}
+              selectedFile={selectedFile}
+              onFileSelect={onFileSelect}
+              onFolderToggle={onFolderToggle}
+              expandedFolders={expandedFolders}
+            />
+          ))
+        )}
+      </div>
+    </aside>
+  );
+}
+
+// ============================================
+// WELCOME VIEW
+// ============================================
+function WelcomeView({ onSuggestionClick }) {
+  const suggestions = [
+    "What is this repo about?",
+    "Explain the folder structure",
+    "Which file should I start with?",
+  ];
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div className="max-w-2xl w-full space-y-8">
+        {/* Hero */}
+        <div className="space-y-4">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-[#22c55e] via-[#86efac] to-[#22c55e] bg-clip-text text-transparent animate-gradient">
+            Welcome to Gitzy ✨
+          </h1>
+          <p className="text-[#9ca3af] text-base leading-relaxed max-w-lg">
+            Select a file from the repository explorer to dive deep into the code, or ask Gitzy anything about this codebase to get started.
+          </p>
+        </div>
+
+        {/* Suggestions */}
+        <div className="space-y-3">
+          <p className="text-xs text-[#6b7280] uppercase tracking-wider font-medium">
+            TRY ASKING:
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                onClick={() => onSuggestionClick(suggestion)}
+                className="px-4 py-2.5 rounded-full bg-gradient-to-b from-[#18181b] to-[#0f0f11] 
+                         border border-[#27272a] text-[#d1d5db] text-sm
+                         hover:border-[#22c55e]/50 hover:text-[#22c55e] hover:shadow-lg hover:shadow-[#22c55e]/10
+                         transition-all duration-200 cursor-pointer"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Visual accent */}
+        <div className="pt-8 opacity-40">
+          <div className="w-16 h-1 bg-gradient-to-r from-transparent via-[#22c55e] to-transparent rounded-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// FILE VIEW
+// ============================================
+function FileView({ file, messages, fileContent, loadingContent }) {
+  return (
+    <div className="flex-1 flex flex-col">
+      {/* File Header */}
+      <div className="px-6 py-4 bg-[#0f0f11]/40 border-b border-[#27272a]/30">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#22c55e]/10 flex items-center justify-center">
+            <FileText size={16} className="text-[#22c55e]" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[#e5e7eb] font-mono">
+              {file.path}
+            </h2>
+            <p className="text-xs text-[#6b7280]">
+              File • Ready for analysis
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Code Preview */}
+      <div className="px-6 py-4 bg-[#0b0b0f]/50 border-b border-[#27272a]/20">
+        <div className="bg-[#18181b] rounded-lg border border-[#27272a]/40 p-4 max-h-96 overflow-auto">
+          {loadingContent ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-5 h-5 border-2 border-[#22c55e] border-t-transparent rounded-full animate-spin" />
+              <span className="ml-3 text-xs text-[#6b7280]">Loading file content...</span>
+            </div>
+          ) : (
+            <pre className="text-xs text-[#9ca3af] font-mono leading-relaxed overflow-x-auto">
+              <code>{fileContent || "// No content available"}</code>
+            </pre>
+          )}
+        </div>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-[#6b7280]">
+              Ask Gitzy about <span className="text-[#22c55e] font-mono">{file.path}</span>
+            </p>
+          </div>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
+            >
+              {msg.role === "assistant" && (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center flex-shrink-0">
+                  <Sparkles size={14} className="text-[#0b0b0f]" />
+                </div>
+              )}
+              <div
+                className={`max-w-2xl px-4 py-3 rounded-2xl ${
+                  msg.role === "user"
+                    ? "bg-[#27272a]/40 text-[#e5e7eb]"
+                    : "bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#d1d5db]"
+                }`}
+              >
+                <p className="text-sm leading-relaxed">{msg.content}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// CHAT INPUT BAR
+// ============================================
+function ChatInputBar({ onSend, placeholder = "Ask Gitzy about this repository…" }) {
+  const [input, setInput] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (input.trim()) {
+      onSend(input.trim());
+      setInput("");
+    }
+  };
+
+  return (
+    <div className="px-6 py-4 border-t border-[#27272a]/30 bg-[#0b0b0f]/40 backdrop-blur-sm">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+        <div className="relative flex items-center gap-2 bg-[#18181b] border border-[#27272a] rounded-2xl px-4 py-3 focus-within:border-[#22c55e]/50 focus-within:shadow-lg focus-within:shadow-[#22c55e]/5 transition-all duration-200">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={placeholder}
+            className="flex-1 bg-transparent border-none outline-none text-sm text-[#e5e7eb] placeholder:text-[#6b7280]"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="w-8 h-8 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] disabled:bg-[#27272a] disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+          >
+            <Send size={16} className="text-[#0b0b0f]" />
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ============================================
+// MAIN WORKSPACE VIEW
+// ============================================
 function WorkspaceView({ repoUrl }) {
-    const [tree, setTree] = useState([]);
+  const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [fileContent, setFileContent] = useState("");
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
 
-    useEffect(() => {
+  // Parse the GitHub URL
+  const parsedRepo = parseGitHubUrl(repoUrl);
+
+  // Fetch root tree on mount
+  useEffect(() => {
     async function fetchTree() {
+      if (!parsedRepo) {
+        console.error("Invalid repo URL");
+        setLoading(false);
+        return;
+      }
+
+      const { owner, repo } = parsedRepo;
+
       try {
-        const res = await fetch("http://localhost:5000/api/repo/tree", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ repoUrl }),
-        });
+        console.log("Fetching repo:", owner, repo);
+
+        const res = await fetch(
+          `http://localhost:5000/api/repo/${owner}/${repo}`
+        );
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
 
         const data = await res.json();
-        setTree(data.tree || []);
+        console.log("API Response:", data);
+
+        setTree(data.data || []);
       } catch (err) {
-        console.error("Failed to load repo tree", err);
+        console.error("Failed to load repo:", err);
       } finally {
         setLoading(false);
       }
@@ -28,227 +404,151 @@ function WorkspaceView({ repoUrl }) {
     fetchTree();
   }, [repoUrl]);
 
+  // Toggle folder expansion
+  const handleFolderToggle = async (folder) => {
+    const newExpanded = new Set(expandedFolders);
+
+    if (newExpanded.has(folder.path)) {
+      // Collapse
+      newExpanded.delete(folder.path);
+    } else {
+      // Expand
+      newExpanded.add(folder.path);
+
+      // Fetch children if not already loaded
+      if (!folder.children || folder.children.length === 0) {
+        await fetchFolderContents(folder);
+      }
+    }
+
+    setExpandedFolders(newExpanded);
+  };
+
+  // Fetch folder contents
+  const fetchFolderContents = async (folder) => {
+    if (!parsedRepo) return;
+
+    const { owner, repo } = parsedRepo;
+
+    try {
+      console.log("Fetching folder:", folder.path);
+
+      const res = await fetch(
+        `http://localhost:5000/api/repo/${owner}/${repo}/contents/${folder.path}`
+      );
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log("Folder contents:", data);
+
+      // Update tree with children
+      setTree((prevTree) => {
+        const updateTreeWithChildren = (items) => {
+          return items.map((item) => {
+            if (item.path === folder.path) {
+              return { ...item, children: data.data || [] };
+            }
+            if (item.children) {
+              return { ...item, children: updateTreeWithChildren(item.children) };
+            }
+            return item;
+          });
+        };
+
+        return updateTreeWithChildren(prevTree);
+      });
+    } catch (err) {
+      console.error("Failed to load folder:", err);
+    }
+  };
+
+  // Select file and fetch content
+  const handleFileSelect = async (file) => {
+    if (!parsedRepo) return;
+
+    setSelectedFile(file);
+    setMessages([]);
+    setFileContent("");
+    setLoadingContent(true);
+
+    const { owner, repo } = parsedRepo;
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(file.path)}`
+      );
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      setFileContent(data.code || "// No content available");
+    } catch (err) {
+      console.error("Failed to load file:", err);
+      setFileContent(`// Error loading file: ${err.message}`);
+    } finally {
+      setLoadingContent(false);
+    }
+  };
+
+  const handleSendMessage = (content) => {
+    setMessages((prev) => [...prev, { role: "user", content }]);
+    
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "I'm analyzing the code. This is a simulated response.",
+        },
+      ]);
+    }, 800);
+  };
+
   return (
-    <div
-      style={{
-        height: "100vh",
-        backgroundColor: "#0f0f11",
-        color: "#e5e7eb",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          height: "56px",
-          borderBottom: "1px solid #27272a",
-          display: "flex",
-          alignItems: "center",
-          padding: "0 20px",
-          gap: "10px",
-          backgroundColor: "#0f0f11",
-        }}
-      >
-        <Sparkles size={20} color="#22c55e" />
-        <span
-          style={{
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: "18px",
-          }}
-        >
-          Gitzy
-        </span>
-        <span style={{ color: "#9ca3af" }}>•</span>
-        <span
-          style={{
-            color: "#9ca3af",
-            fontSize: "14px",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {repoUrl}
-        </span>
-      </div>
+    <div className="h-screen bg-[#0b0b0f] text-[#e5e7eb] flex flex-col overflow-hidden">
+      <WorkspaceNavbar repoUrl={repoUrl} />
 
-      {/* Main Content */}
-      <div
-        style={{
-          flex: 1,
-          display: "grid",
-          gridTemplateColumns: "260px 1fr",
-        }}
-      >
-        {/* Left: Repo Tree */}
-        <div
-          style={{
-            borderRight: "1px solid #27272a",
-            padding: "12px",
-            backgroundColor: "#18181b",
-          }}
-        >      
-          <div
-  style={{
-    fontSize: "11px",
-    letterSpacing: "0.08em",
-    color: "#6b7280",
-    marginBottom: "14px",
-  }}
->
-  EXPLORER
-</div>
+      <div className="flex-1 flex overflow-hidden">
+        <RepoSidebar
+          tree={tree}
+          loading={loading}
+          selectedFile={selectedFile}
+          onFileSelect={handleFileSelect}
+          onFolderToggle={handleFolderToggle}
+          expandedFolders={expandedFolders}
+        />
 
-  <div style={{ marginBottom: "12px" }}>
-  <p
-    style={{
-      fontSize: "13px",
-      color: "#9ca3af",
-      fontWeight: "600",
-      marginBottom: "8px",
-      letterSpacing: "0.04em",
-    }}
-  >
-    REPOSITORY FILES
-  </p>
-</div>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {selectedFile ? (
+            <FileView
+              file={selectedFile}
+              messages={messages}
+              fileContent={fileContent}
+              loadingContent={loadingContent}
+            />
+          ) : (
+            <WelcomeView onSuggestionClick={handleSendMessage} />
+          )}
 
-{loading ? (
-  <p style={{ color: "#6b7280", fontSize: "13px" }}>
-    Loading repository...
-  </p>
-) : (
-  tree.map((item, index) => (
-    <div
-      key={index}
-      style={{
-        fontSize: "14px",
-        padding: "6px 4px",
-        borderRadius: "6px",
-        cursor: "pointer",
-        color: "#e5e7eb",
-      }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.background = "#27272a")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.background = "transparent")
-      }
-    >
-      {item.type === "dir" ? "📁" : "📄"} {item.path}
-    </div>
-  ))
-)}
-
-
-        </div>
-
-        {/* Right: Gitzy Assistant */}
-        <div
-  style={{
-    padding: "24px",
-    overflowY: "auto",
-    position: "relative",
-  }}
->
-<div style={{ marginBottom: "28px" }}>
-  <h2
-    style={{
-      fontSize: "28px",
-      fontWeight: "700",
-      background: "linear-gradient(90deg, #22c55e, #86efac)",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      marginBottom: "10px",
-    }}
-  >
-    Welcome to Gitzy ✨
-  </h2>
-
-  <p
-    style={{
-      color: "#9ca3af",
-      fontSize: "15px",
-      maxWidth: "520px",
-      lineHeight: "1.6",
-    }}
-  >
-    Select a file from the repository to start understanding how this project
-    works, or ask Gitzy anything about the codebase.
-  </p>
-</div>
-<div style={{ marginTop: "24px" }}>
-  <p style={{ color: "#9ca3af", fontSize: "13px", marginBottom: "10px" }}>
-    Try asking:
-  </p>
-
-  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-    {[
-      "What is this repo about?",
-      "Explain the folder structure",
-      "Which file should I start with?",
-    ].map((q) => (
-      <div
-        key={q}
-        style={{
-          fontSize: "13px",
-          padding: "8px 14px",
-          background: "linear-gradient(180deg, #18181b, #111113)",
-          border: "1px solid #27272a",
-          borderRadius: "999px",
-          color: "#d1d5db",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "#22c55e";
-          e.currentTarget.style.color = "#22c55e";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "#27272a";
-          e.currentTarget.style.color = "#d1d5db";
-        }}
-      >
-        {q}
-      </div>
-    ))}
-  </div>
-</div>
-
-          <div
-  style={{
-    position: "absolute",
-    bottom: "24px",
-    left: "24px",
-    right: "24px",
-  }}
-><div
-  style={{
-    backgroundColor: "#0b0b0f",
-    border: "1px solid #27272a",
-    borderRadius: "14px",
-    padding: "10px",
-    boxShadow: "0 0 0 1px rgba(34,197,94,0.05)",
-  }}
->
-  <input
-    placeholder="Ask Gitzy about this repository…"
-    style={{
-      width: "100%",
-      padding: "10px 12px",
-      backgroundColor: "transparent",
-      border: "none",
-      outline: "none",
-      color: "#e5e7eb",
-      fontSize: "14px",
-    }}
-  />
-</div>
-</div>
-
+          <ChatInputBar onSend={handleSendMessage} />
         </div>
       </div>
+
+      <style>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% auto;
+          animation: gradient 4s ease infinite;
+        }
+      `}</style>
     </div>
   );
 }

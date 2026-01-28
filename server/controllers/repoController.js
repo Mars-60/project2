@@ -187,3 +187,57 @@ exports.getFullRepoTree = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch full repo tree" });
   }
 };
+
+// ADD THIS FUNCTION TO YOUR repoController.js
+// (Add it right before the last line: module.exports = ...)
+
+// GET folder/path contents (for expanding folders)
+exports.getFolderContents = async (req, res) => {
+  try {
+    // REGEX ROUTE → indexed params
+    const owner = req.params[0];
+    const repo  = req.params[1];
+    const rawPath = req.params[2] || "";
+
+    const path = decodeURIComponent(rawPath);
+
+    console.log("Fetching folder contents:", { owner, repo, path });
+
+    const cacheKey = `${owner}/${repo}:${path}`;
+
+    // Cache check
+    if (repoCache.has(cacheKey)) {
+      return res.json({
+        source: "cache",
+        data: repoCache.get(cacheKey),
+      });
+    }
+
+    // Fetch from GitHub
+    const data = await githubService.getRepoContents(owner, repo, path);
+
+    const filtered = data.filter(item => {
+      if (item.type === "dir") {
+        return !IGNORE_FOLDERS.includes(item.name);
+      }
+      if (item.type === "file") {
+        return !IGNORE_FILES.includes(item.name);
+      }
+      return true;
+    });
+
+    repoCache.set(cacheKey, filtered);
+
+    res.json({
+      source: "github",
+      data: filtered,
+    });
+
+  } catch (err) {
+    console.error(
+      "Error fetching folder contents:",
+      err.response?.data || err.message
+    );
+    res.status(500).json({ message: "Failed to fetch folder contents" });
+  }
+};

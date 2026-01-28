@@ -1,12 +1,17 @@
-const router=require("express").Router();
-const repoController=require("../controllers/repoController.js");
-const authMiddleware=require("../middlewares/authMiddleware.js");
+const router = require("express").Router();
+const repoController = require("../controllers/repoController.js");
 
-//Get repo root structure
-router.get("/:owner/:repo",authMiddleware,repoController.getRepoTree);
+// Specific routes first
+router.get("/:owner/:repo/tree", repoController.getFullRepoTree);
+router.get("/:owner/:repo/file", repoController.getFile);
 
-//Get file content
-router.get("/:owner/:repo/file",authMiddleware,repoController.getFile);
+// Folder contents (deep paths) — REGEX ROUTE
+router.get(
+  /^\/([^/]+)\/([^/]+)\/contents\/(.+)$/,
+  repoController.getFolderContents
+);
 
-router.get("/:owner/:repo/tree",authMiddleware,repoController.getFullRepoTree);
-module.exports=router;
+// Most general route LAST
+router.get("/:owner/:repo", repoController.getRepoTree);
+
+module.exports = router;
