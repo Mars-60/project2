@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Sparkles, Settings, User, ChevronRight, ChevronDown, FileText, Folder, Send } from "lucide-react";
 
 // ============================================
@@ -244,6 +244,10 @@ function WelcomeView({ onSuggestionClick }) {
 // FILE VIEW
 // ============================================
 function FileView({ file, messages, fileContent, loadingContent }) {
+  const bottomRef = useRef(null);
+  useEffect(() => {
+  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
   return (
     <div className="flex-1 flex flex-col">
       {/* File Header */}
@@ -310,10 +314,13 @@ function FileView({ file, messages, fileContent, loadingContent }) {
             </div>
           ))
         )}
+  <div ref={bottomRef} >
+</div>
       </div>
     </div>
   );
 }
+
 
 // ============================================
 // CHAT INPUT BAR
@@ -467,48 +474,94 @@ function WorkspaceView({ repoUrl }) {
 
   // Select file and fetch content
   const handleFileSelect = async (file) => {
-    if (!parsedRepo) return;
+  if (!parsedRepo) return;
 
-    setSelectedFile(file);
-    setMessages([]);
-    setFileContent("");
-    setLoadingContent(true);
+  setSelectedFile(file);
+  setMessages([]);
+  setFileContent("");
+  setLoadingContent(true);
 
-    const { owner, repo } = parsedRepo;
+  const { owner, repo } = parsedRepo;
 
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(file.path)}`
-      );
+  try {
+    // 1️⃣ Fetch file content (already working)
+    const res = await fetch(
+      `http://localhost:5000/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(file.path)}`
+    );
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      setFileContent(data.code || "// No content available");
-    } catch (err) {
-      console.error("Failed to load file:", err);
-      setFileContent(`// Error loading file: ${err.message}`);
-    } finally {
-      setLoadingContent(false);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
     }
-  };
 
-  const handleSendMessage = (content) => {
-    setMessages((prev) => [...prev, { role: "user", content }]);
-    
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "I'm analyzing the code. This is a simulated response.",
-        },
-      ]);
-    }, 800);
-  };
+    const data = await res.json();
+    setFileContent(data.code || "// No content available");
 
+    // 2️⃣ 🔥 STEP 3: Auto-analyze file with AI (NEW)
+    await fetch(
+      `http://localhost:5000/api/ai/${owner}/${repo}/analyze-file`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: file.path }),
+      }
+    );
+
+  } catch (err) {
+    console.error("Failed to load file:", err);
+    setFileContent(`// Error loading file: ${err.message}`);
+  } finally {
+    setLoadingContent(false);
+  }
+};
+
+const handleSendMessage = async (content) => {
+  if (!selectedFile || !parsedRepo) return;
+
+  const { owner, repo } = parsedRepo;
+
+  // 1️⃣ Show user message immediately
+  setMessages((prev) => [...prev, { role: "user", content }]);
+
+  try {
+    // 2️⃣ Call backend AI ask endpoint
+    const res = await fetch(
+      `http://localhost:5000/api/ai/${owner}/${repo}/ask`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: selectedFile.path,
+          question: content,
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // 3️⃣ Show AI response
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: data.answer || "No response from AI.",
+      },
+    ]);
+  } catch (err) {
+    console.error("AI ask failed:", err);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: "⚠️ Failed to get AI response.",
+      },
+    ]);
+  }
+};
   return (
     <div className="h-screen bg-[#0b0b0f] text-[#e5e7eb] flex flex-col overflow-hidden">
       <WorkspaceNavbar repoUrl={repoUrl} />

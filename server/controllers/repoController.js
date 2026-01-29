@@ -90,8 +90,8 @@ exports.getRepoTree = async (req, res) => {
 };
 
 
-//GET single file content
-  exports.getFile = async (req, res) => {
+//GET single file content// GET single file content (SAFE VERSION)
+exports.getFile = async (req, res) => {
   const { owner, repo } = req.params;
   const { path } = req.query;
 
@@ -111,15 +111,36 @@ exports.getRepoTree = async (req, res) => {
   }
 
   try {
+    console.log("Using GitHub token:", process.env.GITHUB_API_TOKEN?.slice(0, 6));
     const response = await axios.get(
       `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
       {
         headers: {
-          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
           Accept: "application/vnd.github+json",
         },
       }
     );
+
+    // ✅ SAFETY CHECK 1: Path is a folder
+    if (Array.isArray(response.data)) {
+      return res.status(400).json({
+        message: "This path is a folder, not a file",
+        path,
+      });
+    }
+
+    // ✅ SAFETY CHECK 2: Unsupported / binary file
+    if (
+      response.data.type !== "file" ||
+      !response.data.content ||
+      response.data.encoding !== "base64"
+    ) {
+      return res.status(400).json({
+        message: "Unsupported or binary file",
+        path,
+      });
+    }
 
     const code = Buffer.from(
       response.data.content,
@@ -140,9 +161,17 @@ exports.getRepoTree = async (req, res) => {
       ...payload,
     });
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch file" });
+    console.error(
+      "File fetch error:",
+      err.response?.data || err.message
+    );
+
+    res.status(500).json({
+      message: "Failed to fetch file",
+    });
   }
 };
+
 
 
 exports.getFullRepoTree = async (req, res) => {

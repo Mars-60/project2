@@ -24,16 +24,39 @@ exports.getRepoContents= async(owner,repo,path="")=>{
     return response.data;
 };
 
-//Get file content
-exports.getFileContent=async(owner,repo,path="")=>{
-    const url=`/repos/${owner}/${repo}/contents/${path}`;
-    const response=await githubClient.get(url);
-    
-    const encoded=response.data.content;
-    const decoded=Buffer.from(encoded,"base64").toString("utf-8");
+//Get file contentconst axios = require("axios");
 
-    return decoded;
+exports.getFileContent = async (owner, repo, path) => {
+  const response = await axios.get(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Accept: "application/vnd.github+json",
+      },
+    }
+  );
+
+  // Folder guard
+  if (Array.isArray(response.data)) {
+    throw new Error("Path is a folder");
+  }
+
+  // Binary guard
+  if (
+    response.data.type !== "file" ||
+    !response.data.content ||
+    response.data.encoding !== "base64"
+  ) {
+    throw new Error("Unsupported file");
+  }
+
+  return Buffer.from(
+    response.data.content,
+    "base64"
+  ).toString("utf-8");
 };
+
 
 
 exports.getRepoTreeRecursive = async (

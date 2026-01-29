@@ -3,22 +3,26 @@ const client=new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-//Generate file understanding
-exports.generateFileIntelligence=async(code)=>{
-    const response=await client.responses.create({
-        model:"gpt-4.1-mini",
-        input:`Analyze the following code.
-  Return JSON with:
-- purpose
-- responsibilities (array)
-- keyFunctions (array)
-- suggestedQuestions (array)
+//Generate file understandingexports.generateFileIntelligence = async (code) => {
+  const response = await client.responses.create({
+    model: "gpt-4.1-mini",
+    response_format: { type: "json_object" },
+    input: `
+Analyze the following code and return STRICT JSON with:
+{
+  "purpose": string,
+  "responsibilities": string[],
+  "keyFunctions": string[],
+  "suggestedQuestions": string[]
+}
 
-Code:${code}`
-    });
+Code:
+${code}
+`
+  });
 
-return response.output_txt;
-};
+  return JSON.parse(response.output_text);
+
 
 //Answer questions using cached understanding
 exports.answerQuestion=async(intelligence,question)=>{
