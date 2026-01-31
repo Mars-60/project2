@@ -24,14 +24,14 @@ exports.getRepoContents= async(owner,repo,path="")=>{
     return response.data;
 };
 
-//Get file contentconst axios = require("axios");
+//Get file content
 
 exports.getFileContent = async (owner, repo, path) => {
   const response = await axios.get(
     `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
     {
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
         Accept: "application/vnd.github+json",
       },
     }

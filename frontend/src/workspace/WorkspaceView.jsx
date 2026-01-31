@@ -244,82 +244,79 @@ function WelcomeView({ onSuggestionClick }) {
 // FILE VIEW
 // ============================================
 function FileView({ file, messages, fileContent, loadingContent }) {
+  const containerRef = useRef(null);
   const bottomRef = useRef(null);
+  const userScrolledUpRef = useRef(false);
+
+  // Detect manual scroll
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const isNearBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+
+    userScrolledUpRef.current = !isNearBottom;
+  };
+
+  // Auto-scroll on NEW messages (user OR assistant)
   useEffect(() => {
-  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages]);
+    if (!containerRef.current) return;
+    if (userScrolledUpRef.current) return;
+
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [messages]);
+
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       {/* File Header */}
       <div className="px-6 py-4 bg-[#0f0f11]/40 border-b border-[#27272a]/30">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#22c55e]/10 flex items-center justify-center">
-            <FileText size={16} className="text-[#22c55e]" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-[#e5e7eb] font-mono">
-              {file.path}
-            </h2>
-            <p className="text-xs text-[#6b7280]">
-              File • Ready for analysis
-            </p>
-          </div>
-        </div>
+        <h2 className="text-sm font-semibold text-[#e5e7eb] font-mono">
+          {file.path}
+        </h2>
       </div>
 
-      {/* Code Preview */}
-      <div className="px-6 py-4 bg-[#0b0b0f]/50 border-b border-[#27272a]/20">
-        <div className="bg-[#18181b] rounded-lg border border-[#27272a]/40 p-4 max-h-96 overflow-auto">
+      {/* Unified Scroll Area */}
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-6 py-4 space-y-6"
+      >
+        {/* Code Preview */}
+        <div className="bg-[#18181b] rounded-lg border border-[#27272a]/40 p-4">
           {loadingContent ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-5 h-5 border-2 border-[#22c55e] border-t-transparent rounded-full animate-spin" />
-              <span className="ml-3 text-xs text-[#6b7280]">Loading file content...</span>
-            </div>
+            <div className="h-10 w-10 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
           ) : (
-            <pre className="text-xs text-[#9ca3af] font-mono leading-relaxed overflow-x-auto">
+            <pre className="text-xs text-[#9ca3af] font-mono whitespace-pre-wrap">
               <code>{fileContent || "// No content available"}</code>
             </pre>
           )}
         </div>
-      </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-[#6b7280]">
-              Ask Gitzy about <span className="text-[#22c55e] font-mono">{file.path}</span>
-            </p>
-          </div>
-        ) : (
-          messages.map((msg, idx) => (
+        {/* Chat */}
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${msg.role === "user" ? "justify-end" : ""}`}
+          >
             <div
-              key={idx}
-              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
+              className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
+                msg.role === "user"
+                  ? "bg-[#27272a]/40"
+                  : "bg-[#22c55e]/10 border border-[#22c55e]/20"
+              }`}
             >
-              {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center flex-shrink-0">
-                  <Sparkles size={14} className="text-[#0b0b0f]" />
-                </div>
-              )}
-              <div
-                className={`max-w-2xl px-4 py-3 rounded-2xl ${
-                  msg.role === "user"
-                    ? "bg-[#27272a]/40 text-[#e5e7eb]"
-                    : "bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#d1d5db]"
-                }`}
-              >
-                <p className="text-sm leading-relaxed">{msg.content}</p>
-              </div>
+              {msg.content}
             </div>
-          ))
-        )}
-  <div ref={bottomRef} >
-</div>
+          </div>
+        ))}
+
+        <div ref={bottomRef} />
       </div>
     </div>
   );
 }
+
 
 
 // ============================================
@@ -363,14 +360,19 @@ function ChatInputBar({ onSend, placeholder = "Ask Gitzy about this repository�
 // ============================================
 // MAIN WORKSPACE VIEW
 // ============================================
+// ============================================
+// MAIN WORKSPACE VIEW
+// ============================================
 function WorkspaceView({ repoUrl }) {
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [fileChats, setFileChats] = useState({});
   const [fileContent, setFileContent] = useState("");
   const [loadingContent, setLoadingContent] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
+
+  const messages = selectedFile ? fileChats[selectedFile.path] || [] : [];
 
   // Parse the GitHub URL
   const parsedRepo = parseGitHubUrl(repoUrl);
@@ -459,7 +461,10 @@ function WorkspaceView({ repoUrl }) {
               return { ...item, children: data.data || [] };
             }
             if (item.children) {
-              return { ...item, children: updateTreeWithChildren(item.children) };
+              return {
+                ...item,
+                children: updateTreeWithChildren(item.children),
+              };
             }
             return item;
           });
@@ -474,65 +479,109 @@ function WorkspaceView({ repoUrl }) {
 
   // Select file and fetch content
   const handleFileSelect = async (file) => {
-  if (!parsedRepo) return;
+    if (!parsedRepo) return;
 
-  setSelectedFile(file);
-  setMessages([]);
-  setFileContent("");
-  setLoadingContent(true);
+    setSelectedFile(file);
+    setFileContent("");
+    setLoadingContent(true);
 
-  const { owner, repo } = parsedRepo;
+    const { owner, repo } = parsedRepo;
 
-  try {
-    // 1️⃣ Fetch file content (already working)
-    const res = await fetch(
-      `http://localhost:5000/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(file.path)}`
-    );
+    try {
+      // 1️⃣ Fetch file content
+      const res = await fetch(
+        `http://localhost:5000/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(
+          file.path
+        )}`
+      );
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    setFileContent(data.code || "// No content available");
-
-    // 2️⃣ 🔥 STEP 3: Auto-analyze file with AI (NEW)
-    await fetch(
-      `http://localhost:5000/api/ai/${owner}/${repo}/analyze-file`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: file.path }),
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
       }
-    );
 
-  } catch (err) {
-    console.error("Failed to load file:", err);
-    setFileContent(`// Error loading file: ${err.message}`);
-  } finally {
-    setLoadingContent(false);
-  }
-};
+      const data = await res.json();
+      setFileContent(data.code || "// No content available");
 
+      // 2️⃣ Auto-analyze file with AI
+      console.log("🤖 Analyzing file:", file.path);
+      const analyzeRes = await fetch(
+        `http://localhost:5000/api/ai/${owner}/${repo}/analyze-file`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: file.path }),
+        }
+      );
+
+      if (!analyzeRes.ok) {
+        throw new Error(`AI analysis failed: ${analyzeRes.status}`);
+      }
+
+      const aiData = await analyzeRes.json();
+      console.log("✅ AI Analysis:", aiData);
+
+      // Initialize chat if first visit
+      setFileChats((prev) => {
+        if (prev[file.path]) return prev;
+
+        return {
+          ...prev,
+          [file.path]: [
+            {
+              role: "assistant",
+              content: "✅ I've analyzed this file. Ask me anything about it!",
+            },
+          ],
+        };
+      });
+    } catch (err) {
+      console.error("❌ Failed to load file:", err);
+      setFileContent(`// Error loading file: ${err.message}`);
+      
+      // Show error in chat
+      setFileChats((prev) => ({
+        ...prev,
+        [file.path]: [
+          {
+            role: "assistant",
+            content: `⚠️ Error: ${err.message}`,
+          },
+        ],
+      }));
+    } finally {
+      setLoadingContent(false);
+    }
+  };
 const handleSendMessage = async (content) => {
   if (!selectedFile || !parsedRepo) return;
 
+  const filePath = selectedFile.path;
   const { owner, repo } = parsedRepo;
 
-  // 1️⃣ Show user message immediately
-  setMessages((prev) => [...prev, { role: "user", content }]);
+  console.log("💬 Sending message:", content);
+
+  // 1️⃣ Add user message
+  setFileChats((prev) => ({
+    ...prev,
+    [filePath]: [...(prev[filePath] || []), { role: "user", content }],
+  }));
+
+  // 2️⃣ Add empty assistant message (for streaming)
+  setFileChats((prev) => ({
+    ...prev,
+    [filePath]: [
+      ...(prev[filePath] || []),
+      { role: "assistant", content: "" },
+    ],
+  }));
 
   try {
-    // 2️⃣ Call backend AI ask endpoint
     const res = await fetch(
-      `http://localhost:5000/api/ai/${owner}/${repo}/ask`,
+      `http://localhost:5000/api/ai/${owner}/${repo}/ask-stream`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: selectedFile.path,
-          question: content,
-        }),
+        body: JSON.stringify({ path: filePath, question: content }),
       }
     );
 
@@ -540,33 +589,68 @@ const handleSendMessage = async (content) => {
       throw new Error(`HTTP ${res.status}`);
     }
 
-    const data = await res.json();
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = ''; // ✅ FIX: Use buffer to accumulate partial lines
 
-    // 3️⃣ Show AI response
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: data.answer || "No response from AI.",
-      },
-    ]);
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      // ✅ FIX: Decode and add to buffer
+      buffer += decoder.decode(value, { stream: true });
+      
+      // ✅ FIX: Process complete lines only
+      const lines = buffer.split('\n');
+      
+      // Keep the last incomplete line in the buffer
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6).trim(); // Remove "data: " prefix
+          
+          if (data === '[DONE]') {
+            console.log("✅ Stream complete");
+            return; // Exit completely
+          }
+          
+          if (data) {
+            console.log("📤 Token:", data);
+            
+            // Append to last message
+            setFileChats((prev) => {
+              const msgs = [...(prev[filePath] || [])];
+              if (msgs.length > 0) {
+                msgs[msgs.length - 1].content += data;
+              }
+              return { ...prev, [filePath]: msgs };
+            });
+          }
+        }
+      }
+    }
+    
+    console.log("✅ Stream finished");
+    
   } catch (err) {
-    console.error("AI ask failed:", err);
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: "⚠️ Failed to get AI response.",
-      },
-    ]);
+    console.error("❌ Stream error:", err);
+    
+    // Update last message with error
+    setFileChats((prev) => {
+      const msgs = [...(prev[filePath] || [])];
+      if (msgs.length > 0) {
+        msgs[msgs.length - 1].content = `⚠️ Error: ${err.message}`;
+      }
+      return { ...prev, [filePath]: msgs };
+    });
   }
 };
   return (
-    <div className="h-screen bg-[#0b0b0f] text-[#e5e7eb] flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#0b0b0f] text-[#e5e7eb] flex flex-col">
       <WorkspaceNavbar repoUrl={repoUrl} />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0">
         <RepoSidebar
           tree={tree}
           loading={loading}
@@ -575,18 +659,19 @@ const handleSendMessage = async (content) => {
           onFolderToggle={handleFolderToggle}
           expandedFolders={expandedFolders}
         />
-
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {selectedFile ? (
-            <FileView
-              file={selectedFile}
-              messages={messages}
-              fileContent={fileContent}
-              loadingContent={loadingContent}
-            />
-          ) : (
-            <WelcomeView onSuggestionClick={handleSendMessage} />
-          )}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0">
+            {selectedFile ? (
+              <FileView
+                file={selectedFile}
+                messages={messages}
+                fileContent={fileContent}
+                loadingContent={loadingContent}
+              />
+            ) : (
+              <WelcomeView onSuggestionClick={handleSendMessage} />
+            )}
+          </div>
 
           <ChatInputBar onSend={handleSendMessage} />
         </div>
