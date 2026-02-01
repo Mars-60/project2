@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import { Sparkles, Settings, User, ChevronRight, ChevronDown, FileText, Folder, Send } from "lucide-react";
 
 // ============================================
@@ -300,15 +301,44 @@ function FileView({ file, messages, fileContent, loadingContent }) {
             className={`flex ${msg.role === "user" ? "justify-end" : ""}`}
           >
             <div
-              className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
-                msg.role === "user"
-                  ? "bg-[#27272a]/40"
-                  : "bg-[#22c55e]/10 border border-[#22c55e]/20"
-              }`}
-            >
-              {msg.content}
-            </div>
-          </div>
+  className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
+    msg.role === "user"
+      ? "bg-[#27272a]/40"
+      : "bg-[#22c55e]/10 border border-[#22c55e]/20"
+  }`}
+>
+  {msg.role === "assistant" ? (
+    <ReactMarkdown
+  components={{
+    h2: ({ children }) => (
+      <h2 className="text-base font-semibold mt-4 mb-2">
+        {children}
+      </h2>
+    ),
+    h3: ({ children }) => (
+      <h3 className="text-sm font-semibold mt-3 mb-1">
+        {children}
+      </h3>
+    ),
+    p: ({ children }) => (
+      <p className="mb-2 leading-relaxed">
+        {children}
+      </p>
+    ),
+    li: ({ children }) => (
+      <li className="ml-5 list-disc mb-1">
+        {children}
+      </li>
+    ),
+  }}
+>
+  {msg.content}
+</ReactMarkdown>
+) : (
+    msg.content
+  )}
+</div>
+</div>
         ))}
 
         <div ref={bottomRef} />
@@ -591,42 +621,44 @@ const handleSendMessage = async (content) => {
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = ''; // ✅ FIX: Use buffer to accumulate partial lines
+    let buffer = '';
+    let accumulatedResponse = '';
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
 
-      // ✅ FIX: Decode and add to buffer
       buffer += decoder.decode(value, { stream: true });
       
-      // ✅ FIX: Process complete lines only
       const lines = buffer.split('\n');
-      
-      // Keep the last incomplete line in the buffer
       buffer = lines.pop() || '';
       
       for (const line of lines) {
         if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim(); // Remove "data: " prefix
+          // ✅ FIX: Don't trim! Just slice off "data: " prefix
+          const data = line.slice(6); // Remove "data: " but keep spaces
           
-          if (data === '[DONE]') {
+          // ✅ Only trim for checking [DONE]
+          if (data.trim() === '[DONE]') {
             console.log("✅ Stream complete");
-            return; // Exit completely
+            return;
           }
           
-          if (data) {
-            console.log("📤 Token:", data);
-            
-            // Append to last message
-            setFileChats((prev) => {
-              const msgs = [...(prev[filePath] || [])];
-              if (msgs.length > 0) {
-                msgs[msgs.length - 1].content += data;
-              }
-              return { ...prev, [filePath]: msgs };
-            });
-          }
+          // ✅ Don't check if(data) because spaces are valid!
+          console.log("📤 Token:", JSON.stringify(data)); // Use JSON.stringify to see spaces
+          
+          accumulatedResponse += data;
+          
+          setFileChats((prev) => {
+            const msgs = [...(prev[filePath] || [])];
+            if (msgs.length > 0) {
+              msgs[msgs.length - 1] = {
+                ...msgs[msgs.length - 1],
+                content: accumulatedResponse
+              };
+            }
+            return { ...prev, [filePath]: msgs };
+          });
         }
       }
     }
@@ -636,11 +668,13 @@ const handleSendMessage = async (content) => {
   } catch (err) {
     console.error("❌ Stream error:", err);
     
-    // Update last message with error
     setFileChats((prev) => {
       const msgs = [...(prev[filePath] || [])];
       if (msgs.length > 0) {
-        msgs[msgs.length - 1].content = `⚠️ Error: ${err.message}`;
+        msgs[msgs.length - 1] = {
+          ...msgs[msgs.length - 1],
+          content: `⚠️ Error: ${err.message}`
+        };
       }
       return { ...prev, [filePath]: msgs };
     });

@@ -7,37 +7,43 @@ const client = new Groq({
 console.log("🔑 Groq API Key exists:", !!process.env.GROQ_API_KEY);
 
 exports.generateFileIntelligence = async (code) => {
-  console.log("🤖 generateFileIntelligence: Starting...");
-  console.log("📝 Code length:", code.length);
-  
   const response = await client.chat.completions.create({
     model: "llama-3.1-8b-instant",
     messages: [
       {
         role: "system",
-        content:
-          "Analyze the following code. Return ONLY a valid JSON object (no markdown, no code blocks) with these fields: purpose, responsibilities, keyFunctions, suggestedQuestions.",
+        content: `You are a code analysis assistant. You MUST return ONLY valid JSON with no markdown, no explanations, no code blocks.
+
+Return EXACTLY this structure:
+
+{
+  "summary": "one sentence summary of what this file does",
+  "purpose": "the main purpose of this file",
+  "responsibilities": ["responsibility 1", "responsibility 2", "responsibility 3"],
+  "keyFunctions": [
+    { "name": "functionName", "description": "what it does" },
+    { "name": "anotherFunction", "description": "what it does" }
+  ],
+  "usage": "how this file is typically used in the project"
+}
+
+CRITICAL RULES:
+- Return ONLY the JSON object
+- NO markdown code blocks (no \`\`\`json or \`\`\`)
+- NO explanations before or after the JSON
+- NO extra text
+- Start your response with { and end with }
+- Ensure all strings are properly escaped`
       },
       {
         role: "user",
-        content: code,
-      },
+        content: `Analyze this code and return ONLY the JSON structure described:\n\n${code}`
+      }
     ],
+    temperature: 0.3, // Lower temperature for more consistent formatting
   });
 
-  const rawContent = response.choices[0].message.content;
-  console.log("✅ Groq raw response:", rawContent);
-  
-  // Clean up response - remove markdown code blocks if present
-  let cleanedContent = rawContent.trim();
-  if (cleanedContent.startsWith("```json")) {
-    cleanedContent = cleanedContent.replace(/^```json\n?/, "").replace(/\n?```$/, "");
-  } else if (cleanedContent.startsWith("```")) {
-    cleanedContent = cleanedContent.replace(/^```\n?/, "").replace(/\n?```$/, "");
-  }
-  
-  console.log("✅ Cleaned response:", cleanedContent);
-  return cleanedContent;
+  return response.choices[0].message.content.trim();
 };
 
 exports.answerQuestion = async (intelligence, question) => {
@@ -49,7 +55,7 @@ exports.answerQuestion = async (intelligence, question) => {
     messages: [
       {
         role: "system",
-        content: `You are answering based on this analysis:\n${intelligence}`,
+        content: `You are a helpful code assistant. Use this analysis to answer questions:\n\n${JSON.stringify(intelligence, null, 2)}`,
       },
       {
         role: "user",
@@ -59,33 +65,28 @@ exports.answerQuestion = async (intelligence, question) => {
   });
 
   const answer = response.choices[0].message.content;
-  console.log("✅ Groq answer received:", answer);
+  console.log("✅ Groq answer received:", answer?.substring(0, 100));
   return answer;
 };
 
-// ✅ FIX: Use the same model as other functions
-exports.answerQuestionStream = async function* (path, question) {
-  console.log("🤖 answerQuestionStream: Starting...");
-  console.log("📝 Path:", path, "Question:", question);
-  
+exports.answerQuestionStream = async function* (code, question) {
   const completion = await client.chat.completions.create({
-    model: "llama-3.1-8b-instant", // ✅ FIXED: Changed from llama3-70b-8192
+    model: "llama-3.1-8b-instant",
     messages: [
-      { role: "system", content: `You are analyzing ${path}` },
-      { role: "user", content: question }
+      {
+        role: "system",
+        content:"You are a helpful code assistant. Explain code clearly and concisely. Use markdown formatting for better readability."
+},
+      {
+        role: "user",
+        content: `Here's the code:\n\n\`\`\`\n${code}\n\`\`\`\n\nQuestion: ${question}`
+      }
     ],
     stream: true,
   });
 
-  console.log("✅ Stream started");
-  
   for await (const chunk of completion) {
     const token = chunk.choices[0]?.delta?.content;
-    if (token) {
-      console.log("📤 Token:", token);
-      yield token;
-    }
+    if (token) yield token;
   }
-  
-  console.log("✅ Stream complete");
 };
