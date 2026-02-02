@@ -295,52 +295,109 @@ function FileView({ file, messages, fileContent, loadingContent }) {
         </div>
 
         {/* Chat */}
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex ${msg.role === "user" ? "justify-end" : ""}`}
-          >
-            <div
-  className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
-    msg.role === "user"
-      ? "bg-[#27272a]/40"
-      : "bg-[#22c55e]/10 border border-[#22c55e]/20"
-  }`}
->
-  {msg.role === "assistant" ? (
-    <ReactMarkdown
-  components={{
-    h2: ({ children }) => (
-      <h2 className="text-base font-semibold mt-4 mb-2">
-        {children}
-      </h2>
-    ),
-    h3: ({ children }) => (
-      <h3 className="text-sm font-semibold mt-3 mb-1">
-        {children}
-      </h3>
-    ),
-    p: ({ children }) => (
-      <p className="mb-2 leading-relaxed">
-        {children}
-      </p>
-    ),
-    li: ({ children }) => (
-      <li className="ml-5 list-disc mb-1">
-        {children}
-      </li>
-    ),
-  }}
->
-  {msg.content}
-</ReactMarkdown>
-) : (
-    msg.content
-  )}
-</div>
-</div>
-        ))}
-
+       {messages.map((msg, idx) => (
+  <div
+    key={idx}
+    className={`flex ${msg.role === "user" ? "justify-end" : ""}`}
+  >
+    <div
+      className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
+        msg.role === "user"
+          ? "bg-[#27272a]/40 text-[#d1d5db]"
+          : "bg-[#22c55e]/10 border border-[#22c55e]/20"
+      }`}
+    >
+      {msg.role === "assistant" ? (
+        <ReactMarkdown
+          components={{
+            h1: ({ children }) => (
+              <h1 className="text-lg font-bold text-[#22c55e] mt-4 mb-3 pb-2 border-b border-[#27272a]">
+                {children}
+              </h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="text-base font-semibold text-[#22c55e] mt-4 mb-2">
+                {children}
+              </h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="text-sm font-semibold text-[#d1d5db] mt-3 mb-1">
+                {children}
+              </h3>
+            ),
+            p: ({ children }) => (
+              <p className="mb-3 leading-relaxed text-[#d1d5db]">
+                {children}
+              </p>
+            ),
+            ul: ({ children }) => (
+              <ul className="mb-3 space-y-1">
+                {children}
+              </ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="mb-3 space-y-1 list-decimal list-inside">
+                {children}
+              </ol>
+            ),
+            li: ({ children }) => (
+              <li className="ml-4 text-[#d1d5db] leading-relaxed">
+                • {children}
+              </li>
+            ),
+            code: ({ inline, children }) => 
+              inline ? (
+                <code className="px-1.5 py-0.5 rounded bg-[#27272a] text-[#22c55e] text-xs font-mono">
+                  {children}
+                </code>
+              ) : (
+                <code className="block p-3 my-2 rounded-lg bg-[#18181b] border border-[#27272a] text-[#9ca3af] text-xs font-mono overflow-x-auto">
+                  {children}
+                </code>
+              ),
+            pre: ({ children }) => (
+              <pre className="mb-3 p-3 rounded-lg bg-[#18181b] border border-[#27272a] overflow-x-auto">
+                {children}
+              </pre>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className="pl-4 border-l-2 border-[#22c55e] text-[#9ca3af] italic my-3">
+                {children}
+              </blockquote>
+            ),
+            strong: ({ children }) => (
+              <strong className="font-semibold text-[#22c55e]">
+                {children}
+              </strong>
+            ),
+            em: ({ children }) => (
+              <em className="italic text-[#d1d5db]">
+                {children}
+              </em>
+            ),
+            a: ({ href, children }) => (
+              <a 
+                href={href} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#22c55e] hover:text-[#16a34a] underline decoration-dotted"
+              >
+                {children}
+              </a>
+            ),
+            hr: () => (
+              <hr className="my-4 border-[#27272a]" />
+            ),
+          }}
+        >
+          {msg.content}
+        </ReactMarkdown>
+      ) : (
+        <span className="text-[#d1d5db]">{msg.content}</span>
+      )}
+    </div>
+  </div>
+))}
         <div ref={bottomRef} />
       </div>
     </div>
@@ -583,6 +640,28 @@ function WorkspaceView({ repoUrl }) {
     }
   };
 const handleSendMessage = async (content) => {
+  if (!selectedFile && !parsedRepo) {
+    // General repo question
+    console.log("💬 General repo question:", content);
+    // Add user message to general chat
+    setFileChats((prev) => ({
+      ...prev,
+      __general__: [...(prev.__general__ || []), { role: "user", content }],
+    }));
+    
+    // Add placeholder assistant message
+    setFileChats((prev) => ({
+      ...prev,
+      __general__: [
+        ...(prev.__general__ || []),
+        { role: "assistant", content: "🤔 Thinking..." },
+      ],
+    }));
+    
+    // TODO: Implement general repo questions
+    return;
+  }
+
   if (!selectedFile || !parsedRepo) return;
 
   const filePath = selectedFile.path;
@@ -634,36 +713,58 @@ const handleSendMessage = async (content) => {
       buffer = lines.pop() || '';
       
       for (const line of lines) {
+        if (!line.trim()) continue; // Skip empty lines
+        
         if (line.startsWith('data: ')) {
-          // ✅ FIX: Don't trim! Just slice off "data: " prefix
-          const data = line.slice(6); // Remove "data: " but keep spaces
+          const data = line.slice(6); // Remove "data: " prefix
           
-          // ✅ Only trim for checking [DONE]
           if (data.trim() === '[DONE]') {
             console.log("✅ Stream complete");
             return;
           }
           
-          // ✅ Don't check if(data) because spaces are valid!
-          console.log("📤 Token:", JSON.stringify(data)); // Use JSON.stringify to see spaces
-          
-          accumulatedResponse += data;
-          
-          setFileChats((prev) => {
-            const msgs = [...(prev[filePath] || [])];
-            if (msgs.length > 0) {
-              msgs[msgs.length - 1] = {
-                ...msgs[msgs.length - 1],
-                content: accumulatedResponse
-              };
-            }
-            return { ...prev, [filePath]: msgs };
-          });
+          try {
+            // ✅ FIX: Parse the JSON to get the actual chunk
+            const parsed = JSON.parse(data);
+            const chunk = parsed.chunk || '';
+            
+            console.log("📤 Token:", JSON.stringify(chunk));
+            
+            accumulatedResponse += chunk;
+            
+            // Update the last assistant message
+            setFileChats((prev) => {
+              const msgs = [...(prev[filePath] || [])];
+              if (msgs.length > 0) {
+                msgs[msgs.length - 1] = {
+                  role: "assistant",
+                  content: accumulatedResponse
+                };
+              }
+              return { ...prev, [filePath]: msgs };
+            });
+            
+          } catch (parseError) {
+            // If it's not JSON, it might be a plain text chunk (fallback)
+            console.warn("⚠️ Not JSON, treating as plain text:", data);
+            accumulatedResponse += data;
+            
+            setFileChats((prev) => {
+              const msgs = [...(prev[filePath] || [])];
+              if (msgs.length > 0) {
+                msgs[msgs.length - 1] = {
+                  role: "assistant",
+                  content: accumulatedResponse
+                };
+              }
+              return { ...prev, [filePath]: msgs };
+            });
+          }
         }
       }
     }
     
-    console.log("✅ Stream finished");
+    console.log("✅ Stream finished, final length:", accumulatedResponse.length);
     
   } catch (err) {
     console.error("❌ Stream error:", err);
@@ -672,7 +773,7 @@ const handleSendMessage = async (content) => {
       const msgs = [...(prev[filePath] || [])];
       if (msgs.length > 0) {
         msgs[msgs.length - 1] = {
-          ...msgs[msgs.length - 1],
+          role: "assistant",
           content: `⚠️ Error: ${err.message}`
         };
       }

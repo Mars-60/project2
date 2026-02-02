@@ -8,6 +8,7 @@ router.post(
   "/:owner/:repo/ask-stream",
   aiController.askQuestionStream
 );
+//router.get('/cache/clear', aiController.clearCache);
 
 module.exports=router;
 
