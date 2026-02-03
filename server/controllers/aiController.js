@@ -82,6 +82,23 @@ exports.analyzeFile = async (req, res) => {
     }
   }
 };
+// ✨ NEW: Repo-level QnA
+exports.askRepoQuestion = async (req, res) => {
+  try {
+    const { question, repoTree } = req.body;
+
+    if (!question || !repoTree) {
+      return res.status(400).json({ message: "Question and repoTree required" });
+    }
+
+    const answer = await aiService.answerRepoQuestion(repoTree, question);
+
+    res.json({ answer });
+  } catch (err) {
+    console.error("❌ Repo QnA error:", err.message);
+    res.status(500).json({ message: "Repo QnA failed" });
+  }
+};
 
 exports.askQuestion = async (req, res) => {
   try {

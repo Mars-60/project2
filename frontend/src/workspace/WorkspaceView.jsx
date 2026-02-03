@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Settings, User, ChevronRight, ChevronDown, FileText, Folder, Send } from "lucide-react";
+import { Sparkles, Settings, User, ChevronRight, ChevronDown, FileText, Folder, Send, MessageSquare } from "lucide-react";
 
 // ============================================
 // PARSE GITHUB URL
@@ -30,7 +30,7 @@ function parseGitHubUrl(url) {
 // ============================================
 // WORKSPACE NAVBAR
 // ============================================
-function WorkspaceNavbar({ repoUrl }) {
+function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat }) {
   return (
     <nav className="h-16 flex items-center justify-between px-6 bg-[#0b0b0f]/90 backdrop-blur-md border-b border-[#27272a]/50 sticky top-0 z-50">
       {/* Left: Brand */}
@@ -53,6 +53,17 @@ function WorkspaceNavbar({ repoUrl }) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        <button 
+          onClick={onRepoChatClick}
+          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
+            isRepoChat
+              ? 'bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/30 shadow-lg shadow-[#22c55e]/5'
+              : 'bg-[#27272a]/40 text-[#9ca3af] hover:text-[#e5e7eb] hover:bg-[#27272a]/60 border border-transparent'
+          }`}
+        >
+          <MessageSquare size={16} />
+          <span>Repo Chat</span>
+        </button>
         <button className="p-2 rounded-lg hover:bg-[#27272a]/40 transition-colors text-[#9ca3af] hover:text-[#e5e7eb]">
           <Settings size={18} />
         </button>
@@ -199,7 +210,7 @@ function WelcomeView({ onSuggestionClick }) {
   ];
 
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
+    <div className="flex items-center justify-center p-8">
       <div className="max-w-2xl w-full space-y-8">
         {/* Hero */}
         <div className="space-y-4">
@@ -445,8 +456,100 @@ function ChatInputBar({ onSend, placeholder = "Ask Gitzy about this repository�
 }
 
 // ============================================
-// MAIN WORKSPACE VIEW
+// REPO CHAT VIEW (Full Screen)
 // ============================================
+function RepoChatView({ messages }) {
+  const containerRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="flex-1 overflow-y-auto px-6 py-6"
+    >
+      {messages.length === 0 ? (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-3">
+            <MessageSquare size={48} className="mx-auto text-[#22c55e]/40" />
+            <h3 className="text-lg font-semibold text-[#e5e7eb]">Repository Chat</h3>
+            <p className="text-sm text-[#9ca3af] max-w-md">
+              Ask questions about the entire repository structure, architecture, or general overview.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6 max-w-4xl mx-auto">
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === "user" ? "justify-end" : ""}`}
+            >
+              <div
+                className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
+                  msg.role === "user"
+                    ? "bg-[#27272a]/40 text-[#d1d5db]"
+                    : "bg-[#22c55e]/10 border border-[#22c55e]/20"
+                }`}
+              >
+                {msg.role === "assistant" ? (
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 className="text-lg font-bold text-[#22c55e] mt-4 mb-3 pb-2 border-b border-[#27272a]">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-base font-semibold text-[#22c55e] mt-4 mb-2">
+                          {children}
+                        </h2>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-3 leading-relaxed text-[#d1d5db]">
+                          {children}
+                        </p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="mb-3 space-y-1">
+                          {children}
+                        </ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="ml-4 text-[#d1d5db] leading-relaxed">
+                          • {children}
+                        </li>
+                      ),
+                      code: ({ inline, children }) => 
+                        inline ? (
+                          <code className="px-1.5 py-0.5 rounded bg-[#27272a] text-[#22c55e] text-xs font-mono">
+                            {children}
+                          </code>
+                        ) : (
+                          <code className="block p-3 my-2 rounded-lg bg-[#18181b] border border-[#27272a] text-[#9ca3af] text-xs font-mono overflow-x-auto">
+                            {children}
+                          </code>
+                        ),
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ============================================
 // MAIN WORKSPACE VIEW
 // ============================================
@@ -458,8 +561,13 @@ function WorkspaceView({ repoUrl }) {
   const [fileContent, setFileContent] = useState("");
   const [loadingContent, setLoadingContent] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
+  const [isRepoChat, setIsRepoChat] = useState(false); // NEW STATE
 
-  const messages = selectedFile ? fileChats[selectedFile.path] || [] : [];
+  const messages = isRepoChat
+    ? fileChats.__general__ || []
+    : selectedFile
+    ? fileChats[selectedFile.path] || []
+    : fileChats.__general__ || [];
 
   // Parse the GitHub URL
   const parsedRepo = parseGitHubUrl(repoUrl);
@@ -568,6 +676,8 @@ function WorkspaceView({ repoUrl }) {
   const handleFileSelect = async (file) => {
     if (!parsedRepo) return;
 
+    // Exit repo chat mode when selecting a file
+    setIsRepoChat(false);
     setSelectedFile(file);
     setFileContent("");
     setLoadingContent(true);
@@ -639,151 +749,193 @@ function WorkspaceView({ repoUrl }) {
       setLoadingContent(false);
     }
   };
-const handleSendMessage = async (content) => {
-  if (!selectedFile && !parsedRepo) {
-    // General repo question
-    console.log("💬 General repo question:", content);
-    // Add user message to general chat
-    setFileChats((prev) => ({
-      ...prev,
-      __general__: [...(prev.__general__ || []), { role: "user", content }],
-    }));
-    
-    // Add placeholder assistant message
-    setFileChats((prev) => ({
-      ...prev,
-      __general__: [
-        ...(prev.__general__ || []),
-        { role: "assistant", content: "🤔 Thinking..." },
-      ],
-    }));
-    
-    // TODO: Implement general repo questions
-    return;
-  }
 
-  if (!selectedFile || !parsedRepo) return;
+  // Handle Repo Chat button click
+  const handleRepoChatClick = () => {
+    setIsRepoChat(true);
+    setSelectedFile(null);
+  };
 
-  const filePath = selectedFile.path;
-  const { owner, repo } = parsedRepo;
+  const handleSendMessage = async (content) => {
+    // REPO-LEVEL QUESTION
+    if (!selectedFile || isRepoChat) {
+      console.log("💬 Repo-level question:", content);
 
-  console.log("💬 Sending message:", content);
+      // 1️⃣ Add user message
+      setFileChats((prev) => ({
+        ...prev,
+        __general__: [...(prev.__general__ || []), { role: "user", content }],
+      }));
 
-  // 1️⃣ Add user message
-  setFileChats((prev) => ({
-    ...prev,
-    [filePath]: [...(prev[filePath] || []), { role: "user", content }],
-  }));
+      // 2️⃣ Add thinking message
+      setFileChats((prev) => ({
+        ...prev,
+        __general__: [
+          ...(prev.__general__ || []),
+          { role: "assistant", content: "🤔 Thinking..." },
+        ],
+      }));
 
-  // 2️⃣ Add empty assistant message (for streaming)
-  setFileChats((prev) => ({
-    ...prev,
-    [filePath]: [
-      ...(prev[filePath] || []),
-      { role: "assistant", content: "" },
-    ],
-  }));
+      try {
+        const res = await fetch("http://localhost:5000/api/ai/repo/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: content,
+            repoTree: tree,
+          }),
+        });
 
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/ai/${owner}/${repo}/ask-stream`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: filePath, question: content }),
+        const data = await res.json();
+
+        setFileChats((prev) => {
+          const msgs = [...(prev.__general__ || [])];
+          msgs[msgs.length - 1] = {
+            role: "assistant",
+            content: data.answer || "No response",
+          };
+          return { ...prev, __general__: msgs };
+        });
+      } catch (err) {
+        console.error(err);
+        setFileChats((prev) => {
+          const msgs = [...(prev.__general__ || [])];
+          msgs[msgs.length - 1] = {
+            role: "assistant",
+            content: `⚠️ Error: ${err.message}`,
+          };
+          return { ...prev, __general__: msgs };
+        });
       }
-    );
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+      return;
     }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let accumulatedResponse = '';
+    // FILE-LEVEL QUESTION (existing code)
+    if (!selectedFile || !parsedRepo) return;
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+    const filePath = selectedFile.path;
+    const { owner, repo } = parsedRepo;
 
-      buffer += decoder.decode(value, { stream: true });
-      
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      
-      for (const line of lines) {
-        if (!line.trim()) continue; // Skip empty lines
+    console.log("💬 Sending message:", content);
+
+    // 1️⃣ Add user message
+    setFileChats((prev) => ({
+      ...prev,
+      [filePath]: [...(prev[filePath] || []), { role: "user", content }],
+    }));
+
+    // 2️⃣ Add empty assistant message (for streaming)
+    setFileChats((prev) => ({
+      ...prev,
+      [filePath]: [
+        ...(prev[filePath] || []),
+        { role: "assistant", content: "" },
+      ],
+    }));
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/ai/${owner}/${repo}/ask-stream`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: filePath, question: content }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulatedResponse = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
         
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6); // Remove "data: " prefix
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
           
-          if (data.trim() === '[DONE]') {
-            console.log("✅ Stream complete");
-            return;
-          }
-          
-          try {
-            // ✅ FIX: Parse the JSON to get the actual chunk
-            const parsed = JSON.parse(data);
-            const chunk = parsed.chunk || '';
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
             
-            console.log("📤 Token:", JSON.stringify(chunk));
+            if (data.trim() === '[DONE]') {
+              console.log("✅ Stream complete");
+              return;
+            }
             
-            accumulatedResponse += chunk;
-            
-            // Update the last assistant message
-            setFileChats((prev) => {
-              const msgs = [...(prev[filePath] || [])];
-              if (msgs.length > 0) {
-                msgs[msgs.length - 1] = {
-                  role: "assistant",
-                  content: accumulatedResponse
-                };
-              }
-              return { ...prev, [filePath]: msgs };
-            });
-            
-          } catch (parseError) {
-            // If it's not JSON, it might be a plain text chunk (fallback)
-            console.warn("⚠️ Not JSON, treating as plain text:", data);
-            accumulatedResponse += data;
-            
-            setFileChats((prev) => {
-              const msgs = [...(prev[filePath] || [])];
-              if (msgs.length > 0) {
-                msgs[msgs.length - 1] = {
-                  role: "assistant",
-                  content: accumulatedResponse
-                };
-              }
-              return { ...prev, [filePath]: msgs };
-            });
+            try {
+              const parsed = JSON.parse(data);
+              const chunk = parsed.chunk || '';
+              
+              console.log("📤 Token:", JSON.stringify(chunk));
+              
+              accumulatedResponse += chunk;
+              
+              setFileChats((prev) => {
+                const msgs = [...(prev[filePath] || [])];
+                if (msgs.length > 0) {
+                  msgs[msgs.length - 1] = {
+                    role: "assistant",
+                    content: accumulatedResponse
+                  };
+                }
+                return { ...prev, [filePath]: msgs };
+              });
+              
+            } catch (parseError) {
+              console.warn("⚠️ Not JSON, treating as plain text:", data);
+              accumulatedResponse += data;
+              
+              setFileChats((prev) => {
+                const msgs = [...(prev[filePath] || [])];
+                if (msgs.length > 0) {
+                  msgs[msgs.length - 1] = {
+                    role: "assistant",
+                    content: accumulatedResponse
+                  };
+                }
+                return { ...prev, [filePath]: msgs };
+              });
+            }
           }
         }
       }
+      
+      console.log("✅ Stream finished, final length:", accumulatedResponse.length);
+      
+    } catch (err) {
+      console.error("❌ Stream error:", err);
+      
+      setFileChats((prev) => {
+        const msgs = [...(prev[filePath] || [])];
+        if (msgs.length > 0) {
+          msgs[msgs.length - 1] = {
+            role: "assistant",
+            content: `⚠️ Error: ${err.message}`
+          };
+        }
+        return { ...prev, [filePath]: msgs };
+      });
     }
-    
-    console.log("✅ Stream finished, final length:", accumulatedResponse.length);
-    
-  } catch (err) {
-    console.error("❌ Stream error:", err);
-    
-    setFileChats((prev) => {
-      const msgs = [...(prev[filePath] || [])];
-      if (msgs.length > 0) {
-        msgs[msgs.length - 1] = {
-          role: "assistant",
-          content: `⚠️ Error: ${err.message}`
-        };
-      }
-      return { ...prev, [filePath]: msgs };
-    });
-  }
-};
+  };
+
   return (
     <div className="h-screen bg-[#0b0b0f] text-[#e5e7eb] flex flex-col">
-      <WorkspaceNavbar repoUrl={repoUrl} />
+      <WorkspaceNavbar 
+        repoUrl={repoUrl} 
+        onRepoChatClick={handleRepoChatClick}
+        isRepoChat={isRepoChat}
+      />
 
       <div className="flex-1 flex min-h-0">
         <RepoSidebar
@@ -795,8 +947,10 @@ const handleSendMessage = async (content) => {
           expandedFolders={expandedFolders}
         />
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 min-h-0">
-            {selectedFile ? (
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            {isRepoChat ? (
+              <RepoChatView messages={messages} />
+            ) : selectedFile ? (
               <FileView
                 file={selectedFile}
                 messages={messages}
@@ -804,11 +958,28 @@ const handleSendMessage = async (content) => {
                 loadingContent={loadingContent}
               />
             ) : (
-              <WelcomeView onSuggestionClick={handleSendMessage} />
+              <div className="flex-1 min-h-0 overflow-y-auto bg-[#0b0b0f]">
+                <WelcomeView onSuggestionClick={handleSendMessage} />
+
+                {messages.length > 0 && (
+                  <div className="px-6 py-6">
+                    <RepoChatView messages={messages} />
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
-          <ChatInputBar onSend={handleSendMessage} />
+          <ChatInputBar 
+            onSend={handleSendMessage}
+            placeholder={
+              isRepoChat 
+                ? "Ask about the repository..." 
+                : selectedFile 
+                ? `Ask about ${selectedFile.name}...`
+                : "Ask Gitzy about this repository…"
+            }
+          />
         </div>
       </div>
 
