@@ -1,45 +1,101 @@
-const passport=require("passport");
-const jwt=require("jsonwebtoken");
-const router=require("express").Router();
-const {signup,login}=require("../controllers/authController.js");
-const authMiddleware=require("../middlewares/authMiddleware.js");
+const passport = require("passport");
+const jwt = require("jsonwebtoken");
+const router = require("express").Router();
+const { signup, login } = require("../controllers/authController.js");
+const authMiddleware = require("../middlewares/authMiddleware.js");
 
-router.post("/signup",signup);
-router.post("/login",login);
+router.post("/signup", signup);
+router.post("/login", login);
 
-router.get("/me",authMiddleware,async(req,res)=>{
-    res.json({
-        message:"You are authenticated",
-        userId:req.user.id,
-    });
+router.get("/me", authMiddleware, async (req, res) => {
+  res.json({
+    message: "You are authenticated",
+    userId: req.user.id,
+  });
 });
 
-//Google
-router.get("/google",
-    passport.authenticate("google",{scope:["email","profile"]})
-)
-
-router.get("/google/callback",
-    passport.authenticate("google", {session:false}),
-    (req,res)=>{
-        const token=jwt.sign({id: req.user._id},process.env.JWT_SECRET);
-        res.json({token});
-    }
+// ✅ GOOGLE OAUTH
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["email", "profile"] })
 );
 
-//GitHub
-router.get("/github",
-    passport.authenticate("github",{scope:["user:email"]})
-)
+router.get(
+  "/google/callback",
+  (req, res, next) => {
+    passport.authenticate("google", { session: false }, (err, user, info) => {
+      if (err) {
+        console.error("Google callback error:", err);
+        return res.redirect("http://localhost:5173?error=auth_failed");
+      }
 
-router.get("/github/callback",
-    passport.authenticate("github", {session:false}),
-    (req,res)=>{
-        const token=jwt.sign({id: req.user._id},process.env.JWT_SECRET);
-        res.json({token});
-    }
+      // User not found - account doesn't exist
+      if (!user && info && info.message === 'no_account') {
+        return res.redirect(
+          `http://localhost:5173?error=no_account&email=${encodeURIComponent(info.email)}&message=${encodeURIComponent('This account does not exist. Please sign up first.')}`
+        );
+      }
+
+      // Other authentication failure
+      if (!user) {
+        return res.redirect("http://localhost:5173?error=auth_failed");
+      }
+
+      // Success - generate token
+      try {
+        const token = jwt.sign(
+          { id: user._id, email: user.email },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+
+        res.redirect(
+          `http://localhost:5173/auth/callback?token=${token}&email=${encodeURIComponent(user.email)}`
+        );
+      } catch (error) {
+        console.error("Token generation error:", error);
+        res.redirect("http://localhost:5173?error=auth_failed");
+      }
+    })(req, res, next);
+  }
 );
 
+// ✅ GITHUB OAUTH
+router.get(
+  "/github",
+  passport.authenticate("github", { scope: ["user:email"] })
+);
 
+router.get(
+  "/github/callback",
+  (req, res, next) => {
+    passport.authenticate("github", { session: false }, (err, user, info) => {
+      if (err) {
+        console.error("GitHub callback error:", err);
+        return res.redirect("http://localhost:5173?error=auth_failed");
+      }
 
-module.exports=router;
+      if (!user) {
+        return res.redirect("http://localhost:5173?error=auth_failed");
+      }
+
+      // Success - generate token
+      try {
+        const token = jwt.sign(
+          { id: user._id, email: user.email },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+
+        res.redirect(
+          `http://localhost:5173/auth/callback?token=${token}&email=${encodeURIComponent(user.email)}`
+        );
+      } catch (error) {
+        console.error("Token generation error:", error);
+        res.redirect("http://localhost:5173?error=auth_failed");
+      }
+    })(req, res, next);
+  }
+);
+
+module.exports = router;

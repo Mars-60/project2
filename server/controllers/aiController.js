@@ -82,24 +82,126 @@ exports.analyzeFile = async (req, res) => {
     }
   }
 };
-// ✨ NEW: Repo-level QnA
+// In your aiController.js or wherever you handle /api/ai/repo/ask
+
 exports.askRepoQuestion = async (req, res) => {
   try {
     const { question, repoTree } = req.body;
 
-    if (!question || !repoTree) {
-      return res.status(400).json({ message: "Question and repoTree required" });
+    // ✅ CREATE A SUMMARY instead of sending full tree
+    const treeSummary = createTreeSummary(repoTree);
+
+    const prompt = `You are analyzing a GitHub repository. Here's a summary of the repository structure:
+
+${treeSummary}
+
+User question: ${question}
+
+Please provide a helpful answer based on the repository structure above.`;
+
+    // Call your AI API (Groq)
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_tokens: 1024,
+        temperature: 0.7,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ Repo QnA error:", response.status, JSON.stringify(data));
+      return res.status(500).json({
+        answer: "Sorry, I encountered an error processing your question.",
+      });
     }
 
-    const answer = await aiService.answerRepoQuestion(repoTree, question);
+    res.json({
+      answer: data.choices[0].message.content,
+    });
 
-    res.json({ answer });
-  } catch (err) {
-    console.error("❌ Repo QnA error:", err.message);
-    res.status(500).json({ message: "Repo QnA failed" });
+  } catch (error) {
+    console.error("❌ Error in askRepoQuestion:", error);
+    res.status(500).json({
+      answer: "An error occurred while processing your question.",
+    });
   }
 };
 
+// ✅ HELPER FUNCTION: Create a concise tree summary
+function createTreeSummary(tree, maxDepth = 2) {
+  const summary = {
+    folders: [],
+    files: [],
+    totalFiles: 0,
+    totalFolders: 0,
+  };
+
+  function traverse(items, depth = 0, currentPath = "") {
+    if (depth > maxDepth) return;
+
+    items.forEach(item => {
+      const fullPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+
+      if (item.type === "dir") {
+        summary.totalFolders++;
+        if (depth < maxDepth) {
+          summary.folders.push(fullPath);
+        }
+        if (item.children && item.children.length > 0) {
+          traverse(item.children, depth + 1, fullPath);
+        }
+      } else if (item.type === "file") {
+        summary.totalFiles++;
+        if (depth < maxDepth) {
+          summary.files.push(fullPath);
+        }
+      }
+    });
+  }
+
+  traverse(tree);
+
+  // Create readable summary
+  let summaryText = `Repository Structure:\n`;
+  summaryText += `- Total Folders: ${summary.totalFolders}\n`;
+  summaryText += `- Total Files: ${summary.totalFiles}\n\n`;
+
+  if (summary.folders.length > 0) {
+    summaryText += `Main Folders (top ${maxDepth} levels):\n`;
+    summary.folders.slice(0, 50).forEach(folder => {
+      summaryText += `  - ${folder}\n`;
+    });
+    if (summary.folders.length > 50) {
+      summaryText += `  ... and ${summary.folders.length - 50} more folders\n`;
+    }
+    summaryText += `\n`;
+  }
+
+  if (summary.files.length > 0) {
+    summaryText += `Main Files (top ${maxDepth} levels):\n`;
+    summary.files.slice(0, 50).forEach(file => {
+      summaryText += `  - ${file}\n`;
+    });
+    if (summary.files.length > 50) {
+      summaryText += `  ... and ${summary.files.length - 50} more files\n`;
+    }
+  }
+
+  return summaryText;
+}
 exports.askQuestion = async (req, res) => {
   try {
     const { owner, repo } = req.params;

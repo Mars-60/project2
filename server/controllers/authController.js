@@ -2,38 +2,67 @@ const User = require("../models/User.js");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+// Email validation helper
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.(com|in)$/i;
+  return emailRegex.test(email);
+};
+
+// Password validation helper
+const validatePassword = (password) => {
+  return password && password.length >= 4;
+};
+
 // SIGN UP
 exports.signup = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1️⃣ Check if email already exists
-    const existingUser = await User.findOne({ email });
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        message: "Email must end with .com or .in",
+      });
+    }
+
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        message: "Password must be at least 4 characters",
+      });
+    }
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(409).json({
         message: "Email already registered. Please login.",
       });
     }
 
-    // 2️⃣ Hash password
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3️⃣ Create user
+    // Create user
     const user = await User.create({
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
     });
 
-    // 4️⃣ Send clean response (NO password)
+    // Send success response
     res.status(201).json({
-      message: "Signup successful",
+      message: "Signup successful! Please login.",
       userId: user._id,
     });
 
   } catch (error) {
     console.error("Signup error:", error);
     
-    // Handle MongoDB duplicate key error (E11000)
     if (error.code === 11000) {
       return res.status(409).json({
         message: "Email already registered. Please login.",
@@ -49,16 +78,53 @@ exports.signup = async (req, res) => {
 // LOGIN
 exports.login = async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
-    if (!user) return res.status(400).json({ msg: "No user found" });
+    const { email, password } = req.body;
 
-    const match = await bcrypt.compare(req.body.password, user.password);
-    if (!match) return res.status(400).json({ msg: "Wrong password" }); // Fixed: was checking !user instead of !match
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    res.json({ token });
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        message: "Invalid email format",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    // Check password
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      email: user.email,
+    });
+
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };

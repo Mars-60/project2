@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Settings, User, ChevronRight, ChevronDown, FileText, Folder, Send, MessageSquare } from "lucide-react";
+import { Sparkles, Home, User, ChevronRight, ChevronDown, FileText, Folder, Send, MessageSquare, LogOut } from "lucide-react";
 
 // ============================================
 // PARSE GITHUB URL
@@ -28,16 +28,29 @@ function parseGitHubUrl(url) {
 }
 
 // ============================================
-// WORKSPACE NAVBAR
+// WORKSPACE NAVBAR (UPDATED WITH HOME BUTTON)
 // ============================================
-function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat }) {
+function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat, userEmail, onLogout, onGoHome }) {
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowAccountMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <nav className="h-16 flex items-center justify-between px-6 bg-[#0b0b0f]/90 backdrop-blur-md border-b border-[#27272a]/50 sticky top-0 z-50">
       {/* Left: Brand */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center shadow-lg shadow-[#22c55e]/20">
-          <Sparkles size={18} className="text-[#0b0b0f]" strokeWidth={2.5} />
-        </div>
+      <div className="flex items-center gap-3 ">
+        <Sparkles size={24} className="text-[#22c55e]" />
         <span className="text-lg font-semibold text-[#e5e7eb] tracking-tight">
           Gitzy
         </span>
@@ -53,6 +66,7 @@ function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat }) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        {/* Repo Chat Button */}
         <button 
           onClick={onRepoChatClick}
           className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
@@ -64,12 +78,50 @@ function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat }) {
           <MessageSquare size={16} />
           <span>Repo Chat</span>
         </button>
-        <button className="p-2 rounded-lg hover:bg-[#27272a]/40 transition-colors text-[#9ca3af] hover:text-[#e5e7eb]">
-          <Settings size={18} />
+        
+        {/* Home Button - Now properly navigates */}
+        <button
+          onClick={onGoHome}
+          className="p-2 rounded-lg bg-[#27272a]/40 hover:bg-[#27272a]/60 transition-all text-[#22c55e] hover:text-[#16a34a] hover:scale-105"
+          title="Go to Home"
+        >
+          <Home size={18} />
         </button>
-        <button className="p-2 rounded-lg hover:bg-[#27272a]/40 transition-colors text-[#9ca3af] hover:text-[#e5e7eb]">
-          <User size={18} />
-        </button>
+
+        {/* Account Menu */}
+        <div className="relative" ref={menuRef}>
+          <button 
+            onClick={() => setShowAccountMenu(!showAccountMenu)}
+            className="p-2 rounded-lg bg-[#27272a]/40 hover:bg-[#27272a]/60 transition-all text-[#22c55e] hover:text-[#16a34a] hover:scale-105"
+            title="Account"
+          >
+            <User size={18} />
+          </button>
+          
+          {showAccountMenu && (
+            <div className="absolute right-0 mt-2 w-64 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl overflow-hidden z-50">
+              {/* User Info */}
+              <div className="px-4 py-3 border-b border-[#27272a]/50">
+                <p className="text-xs text-[#6b7280] mb-1">Signed in as</p>
+                <p className="text-sm text-[#e5e7eb] font-medium truncate">{userEmail}</p>
+              </div>
+              
+              {/* Menu Items */}
+              <div className="py-2">
+                <button
+                  onClick={() => {
+                    setShowAccountMenu(false);
+                    onLogout();
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-[#e5e7eb] hover:bg-[#27272a]/40 transition-colors flex items-center gap-2"
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );
@@ -306,116 +358,114 @@ function FileView({ file, messages, fileContent, loadingContent }) {
         </div>
 
         {/* Chat */}
-       {messages.map((msg, idx) => (
-  <div
-    key={idx}
-    className={`flex ${msg.role === "user" ? "justify-end" : ""}`}
-  >
-    <div
-      className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
-        msg.role === "user"
-          ? "bg-[#27272a]/40 text-[#d1d5db]"
-          : "bg-[#22c55e]/10 border border-[#22c55e]/20"
-      }`}
-    >
-      {msg.role === "assistant" ? (
-        <ReactMarkdown
-          components={{
-            h1: ({ children }) => (
-              <h1 className="text-lg font-bold text-[#22c55e] mt-4 mb-3 pb-2 border-b border-[#27272a]">
-                {children}
-              </h1>
-            ),
-            h2: ({ children }) => (
-              <h2 className="text-base font-semibold text-[#22c55e] mt-4 mb-2">
-                {children}
-              </h2>
-            ),
-            h3: ({ children }) => (
-              <h3 className="text-sm font-semibold text-[#d1d5db] mt-3 mb-1">
-                {children}
-              </h3>
-            ),
-            p: ({ children }) => (
-              <p className="mb-3 leading-relaxed text-[#d1d5db]">
-                {children}
-              </p>
-            ),
-            ul: ({ children }) => (
-              <ul className="mb-3 space-y-1">
-                {children}
-              </ul>
-            ),
-            ol: ({ children }) => (
-              <ol className="mb-3 space-y-1 list-decimal list-inside">
-                {children}
-              </ol>
-            ),
-            li: ({ children }) => (
-              <li className="ml-4 text-[#d1d5db] leading-relaxed">
-                • {children}
-              </li>
-            ),
-            code: ({ inline, children }) => 
-              inline ? (
-                <code className="px-1.5 py-0.5 rounded bg-[#27272a] text-[#22c55e] text-xs font-mono">
-                  {children}
-                </code>
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${msg.role === "user" ? "justify-end" : ""}`}
+          >
+            <div
+              className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
+                msg.role === "user"
+                  ? "bg-[#27272a]/40 text-[#d1d5db]"
+                  : "bg-[#22c55e]/10 border border-[#22c55e]/20"
+              }`}
+            >
+              {msg.role === "assistant" ? (
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-lg font-bold text-[#22c55e] mt-4 mb-3 pb-2 border-b border-[#27272a]">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-base font-semibold text-[#22c55e] mt-4 mb-2">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-sm font-semibold text-[#d1d5db] mt-3 mb-1">
+                        {children}
+                      </h3>
+                    ),
+                    p: ({ children }) => (
+                      <p className="mb-3 leading-relaxed text-[#d1d5db]">
+                        {children}
+                      </p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="mb-3 space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="mb-3 space-y-1 list-decimal list-inside">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => (
+                      <li className="ml-4 text-[#d1d5db] leading-relaxed">
+                        • {children}
+                      </li>
+                    ),
+                    code: ({ inline, children }) => 
+                      inline ? (
+                        <code className="px-1.5 py-0.5 rounded bg-[#27272a] text-[#22c55e] text-xs font-mono">
+                          {children}
+                        </code>
+                      ) : (
+                        <code className="block p-3 my-2 rounded-lg bg-[#18181b] border border-[#27272a] text-[#9ca3af] text-xs font-mono overflow-x-auto">
+                          {children}
+                        </code>
+                      ),
+                    pre: ({ children }) => (
+                      <pre className="mb-3 p-3 rounded-lg bg-[#18181b] border border-[#27272a] overflow-x-auto">
+                        {children}
+                      </pre>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="pl-4 border-l-2 border-[#22c55e] text-[#9ca3af] italic my-3">
+                        {children}
+                      </blockquote>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-[#22c55e]">
+                        {children}
+                      </strong>
+                    ),
+                    em: ({ children }) => (
+                      <em className="italic text-[#d1d5db]">
+                        {children}
+                      </em>
+                    ),
+                    a: ({ href, children }) => (
+                      <a 
+                        href={href} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[#22c55e] hover:text-[#16a34a] underline decoration-dotted"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    hr: () => (
+                      <hr className="my-4 border-[#27272a]" />
+                    ),
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
               ) : (
-                <code className="block p-3 my-2 rounded-lg bg-[#18181b] border border-[#27272a] text-[#9ca3af] text-xs font-mono overflow-x-auto">
-                  {children}
-                </code>
-              ),
-            pre: ({ children }) => (
-              <pre className="mb-3 p-3 rounded-lg bg-[#18181b] border border-[#27272a] overflow-x-auto">
-                {children}
-              </pre>
-            ),
-            blockquote: ({ children }) => (
-              <blockquote className="pl-4 border-l-2 border-[#22c55e] text-[#9ca3af] italic my-3">
-                {children}
-              </blockquote>
-            ),
-            strong: ({ children }) => (
-              <strong className="font-semibold text-[#22c55e]">
-                {children}
-              </strong>
-            ),
-            em: ({ children }) => (
-              <em className="italic text-[#d1d5db]">
-                {children}
-              </em>
-            ),
-            a: ({ href, children }) => (
-              <a 
-                href={href} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-[#22c55e] hover:text-[#16a34a] underline decoration-dotted"
-              >
-                {children}
-              </a>
-            ),
-            hr: () => (
-              <hr className="my-4 border-[#27272a]" />
-            ),
-          }}
-        >
-          {msg.content}
-        </ReactMarkdown>
-      ) : (
-        <span className="text-[#d1d5db]">{msg.content}</span>
-      )}
-    </div>
-  </div>
-))}
+                <span className="text-[#d1d5db]">{msg.content}</span>
+              )}
+            </div>
+          </div>
+        ))}
         <div ref={bottomRef} />
       </div>
     </div>
   );
 }
-
-
 
 // ============================================
 // CHAT INPUT BAR
@@ -553,7 +603,7 @@ function RepoChatView({ messages }) {
 // ============================================
 // MAIN WORKSPACE VIEW
 // ============================================
-function WorkspaceView({ repoUrl }) {
+function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -561,7 +611,7 @@ function WorkspaceView({ repoUrl }) {
   const [fileContent, setFileContent] = useState("");
   const [loadingContent, setLoadingContent] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
-  const [isRepoChat, setIsRepoChat] = useState(false); // NEW STATE
+  const [isRepoChat, setIsRepoChat] = useState(false);
 
   const messages = isRepoChat
     ? fileChats.__general__ || []
@@ -935,6 +985,9 @@ function WorkspaceView({ repoUrl }) {
         repoUrl={repoUrl} 
         onRepoChatClick={handleRepoChatClick}
         isRepoChat={isRepoChat}
+        userEmail={userEmail}
+        onLogout={onLogout}
+        onGoHome={onGoHome}
       />
 
       <div className="flex-1 flex min-h-0">

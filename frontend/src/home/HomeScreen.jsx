@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, User, Home } from "lucide-react";
 
-function HomeScreen({ onAnalyze }) {
+function HomeScreen({ onAnalyze, userEmail, onLogout }) {
   const [repoUrl, setRepoUrl] = useState("");
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   const handleAnalyze = () => {
     if (!repoUrl.trim()) return;
@@ -19,8 +20,97 @@ function HomeScreen({ onAnalyze }) {
         alignItems: "center",
         justifyContent: "center",
         padding: "24px",
+        position: "relative",
       }}
     >
+      {/* 🔝 Top-right actions */}
+      <div
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          display: "flex",
+          gap: "8px",
+        }}
+      >
+        {/* Account / Logout */}
+        <div style={{ position: "relative" }}>
+          <button
+            title="Account"
+            onClick={() => setShowAccountMenu(!showAccountMenu)}
+            style={{
+              padding: "8px",
+              borderRadius: "10px",
+              backgroundColor: "#18181b",
+              border: "1px solid #27272a",
+              color: "#22c55e",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#27272a";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#18181b";
+            }}
+          >
+            <User size={18} />
+          </button>
+
+          {/* Account Dropdown */}
+          {showAccountMenu && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 8px)",
+                right: 0,
+                backgroundColor: "#18181b",
+                border: "1px solid #27272a",
+                borderRadius: "10px",
+                padding: "12px",
+                minWidth: "200px",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                zIndex: 50,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "13px",
+                  color: "#9ca3af",
+                  marginBottom: "8px",
+                  paddingBottom: "8px",
+                  borderBottom: "1px solid #27272a",
+                }}
+              >
+                {userEmail}
+              </div>
+              <button
+                onClick={onLogout}
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  backgroundColor: "#27272a",
+                  border: "none",
+                  borderRadius: "6px",
+                  color: "#e5e7eb",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#3f3f46";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#27272a";
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div
         style={{
           maxWidth: "720px",
@@ -28,28 +118,42 @@ function HomeScreen({ onAnalyze }) {
           textAlign: "center",
         }}
       >
-        {/* Branding */}
+        {/* Branding - Enhanced with gradient and glow */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "10px",
+            gap: "12px",
             marginBottom: "20px",
           }}
         >
-          <Sparkles color="#22c55e" size={36} />
-     <h1
-  style={{
-    fontSize: "42px",
-    fontWeight: "600",
-    letterSpacing: "-0.02em",
-  }}
->
-  Gitzy
-</h1>
-
-
+          <div
+            style={{
+              padding: "8px",
+              borderRadius: "12px",
+              //background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+              //boxShadow: "0 0 20px rgba(34, 197, 94, 0.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+              <Sparkles className="h-7 w-7 text-white" stroke="#86efac"/>
+          <h1
+            style={{
+              fontSize: "48px",
+              fontWeight: "700",
+              letterSpacing: "-0.02em",
+              background: "linear-gradient(135deg, #22c55e 0%, #86efac 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            Gitzy
+          </h1>
+          </div>
         </div>
 
         <p
@@ -78,6 +182,16 @@ function HomeScreen({ onAnalyze }) {
             borderRadius: "10px",
             color: "#e5e7eb",
             marginBottom: "20px",
+            outline: "none",
+            transition: "all 0.2s",
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.border = "1px solid #22c55e";
+            e.currentTarget.style.boxShadow = "0 0 0 3px rgba(34, 197, 94, 0.1)";
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.border = "1px solid #27272a";
+            e.currentTarget.style.boxShadow = "none";
           }}
         />
 
@@ -85,14 +199,24 @@ function HomeScreen({ onAnalyze }) {
         <button
           onClick={handleAnalyze}
           style={{
-            padding: "12px 28px",
+            padding: "14px 32px",
             fontSize: "16px",
-            backgroundColor: "#22c55e",
-            color: "#0f0f11",
+            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+            color: "#000000",
             border: "none",
             borderRadius: "10px",
             cursor: "pointer",
             fontWeight: "600",
+            boxShadow: "0 4px 15px rgba(34, 197, 94, 0.3)",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(34, 197, 94, 0.4)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 4px 15px rgba(34, 197, 94, 0.3)";
           }}
         >
           Analyze Repository
