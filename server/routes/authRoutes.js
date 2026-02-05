@@ -17,7 +17,10 @@ router.get("/me", authMiddleware, async (req, res) => {
 // ✅ GOOGLE OAUTH
 router.get(
   "/google",
-  passport.authenticate("google", { scope: ["email", "profile"] })
+  passport.authenticate("google", { 
+    scope: ["email", "profile"],
+    session: false // ✅ Explicitly disable session
+  })
 );
 
 router.get(
@@ -63,7 +66,10 @@ router.get(
 // ✅ GITHUB OAUTH
 router.get(
   "/github",
-  passport.authenticate("github", { scope: ["user:email"] })
+  passport.authenticate("github", { 
+    scope: ["user:email"],
+    session: false // ✅ Explicitly disable session
+  })
 );
 
 router.get(
@@ -75,6 +81,14 @@ router.get(
         return res.redirect("http://localhost:5173?error=auth_failed");
       }
 
+      // User not found - account doesn't exist
+      if (!user && info && info.message === 'no_account') {
+        return res.redirect(
+          `http://localhost:5173?error=no_account&email=${encodeURIComponent(info.email || '')}&message=${encodeURIComponent('This account does not exist. Please sign up first.')}`
+        );
+      }
+
+      // Other authentication failure
       if (!user) {
         return res.redirect("http://localhost:5173?error=auth_failed");
       }

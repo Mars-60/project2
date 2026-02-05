@@ -99,10 +99,13 @@ function AuthScreen({ onLogin }) {
     }
   };
 
-  const handleOAuthLogin = (provider) => {
-    window.location.href = `http://localhost:5000/api/auth/${provider}`;
-  };
-
+const handleOAuthLogin = (provider) => {
+  // ✅ Clear any existing tokens before OAuth
+  localStorage.removeItem('token');
+  localStorage.removeItem('userEmail');
+  
+  window.location.href = `http://localhost:5000/api/auth/${provider}`;
+};
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0b0b0f] px-4">
       <div className="w-full max-w-md rounded-2xl border border-gray-800 bg-[#121217] p-8 shadow-xl">
