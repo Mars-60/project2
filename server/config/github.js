@@ -2,16 +2,12 @@ const passport = require("passport");
 const GitHubStrategy = require("passport-github2").Strategy;
 const User = require("../models/User");
 
-passport.use(
-  new GitHubStrategy(
-    {
-      clientID: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: "http://localhost:5000/api/auth/github/callback",
-      scope: ["user:email"],
-      // ❌ REMOVE state: true (it requires sessions)
-    },
-    async (accessToken, refreshToken, profile, done) => {
+passport.use(new GitHubStrategy({
+  clientID: process.env.GITHUB_CLIENT_ID,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  callbackURL: "/api/auth/github/callback",
+  authorizationURL: "https://github.com/login/oauth/authorize?prompt=select_account"
+}, async (accessToken, refreshToken, profile, done) => {
       try {
         let email = null;
 

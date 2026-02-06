@@ -66,11 +66,13 @@ router.get(
 // ✅ GITHUB OAUTH
 router.get(
   "/github",
-  passport.authenticate("github", { 
+  passport.authenticate("github", {
     scope: ["user:email"],
-    session: false // ✅ Explicitly disable session
+    session: false,
+    prompt: "select_account"   // ⭐ FORCE account chooser
   })
 );
+
 
 router.get(
   "/github/callback",
