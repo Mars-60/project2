@@ -19,7 +19,7 @@ function App() {
     
     if (token && email) {
       // Verifying if token is still valid
-      fetch('http://localhost:5000/api/auth/me', {
+      fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

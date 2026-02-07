@@ -476,7 +476,7 @@ useEffect(() => {
       console.log("Fetching repo:", owner, repo);
 
       const res = await fetch(
-        `http://localhost:5000/api/repo/${owner}/${repo}`
+        `${import.meta.env.VITE_API_URL}/api/repo/${owner}/${repo}`
       );
 
       // If backend returned error (private repo / not found)
@@ -535,7 +535,7 @@ useEffect(() => {
       console.log("Fetching folder:", folder.path);
 
       const res = await fetch(
-        `http://localhost:5000/api/repo/${owner}/${repo}/contents/${folder.path}`
+        `${import.meta.env.VITE_API_URL}/api/repo/${owner}/${repo}/contents/${folder.path}`
       );
 
       if (!res.ok) {
@@ -584,7 +584,7 @@ useEffect(() => {
     try {
       // 1️. Fetch file content
       const res = await fetch(
-        `http://localhost:5000/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(
+        `${import.meta.env.VITE_API_URL}/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(
           file.path
         )}`
       );
@@ -599,7 +599,7 @@ useEffect(() => {
       // 2️. Auto-analyze file with AI
       console.log("🤖 Analyzing file:", file.path);
       const analyzeRes = await fetch(
-        `http://localhost:5000/api/ai/${owner}/${repo}/analyze-file`,
+        `${import.meta.env.VITE_API_URL}/api/ai/${owner}/${repo}/analyze-file`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -674,7 +674,7 @@ useEffect(() => {
       }));
 
       try {
-        const res = await fetch("http://localhost:5000/api/ai/repo/ask", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/repo/ask`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -733,7 +733,7 @@ useEffect(() => {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/ai/${owner}/${repo}/ask-stream`,
+        `${import.meta.env.VITE_API_URL}/api/ai/${owner}/${repo}/ask-stream`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

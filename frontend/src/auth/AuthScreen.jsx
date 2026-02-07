@@ -62,7 +62,7 @@ return;
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
       
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,8 +104,8 @@ const handleOAuthLogin = (provider) => {
 
   localStorage.removeItem('token');
   localStorage.removeItem('userEmail');
-  
-  window.location.href = `http://localhost:5000/api/auth/${provider}`;
+  window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/${provider}`;
+
 };
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0b0b0f] px-4">
