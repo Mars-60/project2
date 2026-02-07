@@ -29,19 +29,19 @@ router.get(
     passport.authenticate("google", { session: false }, (err, user, info) => {
       if (err) {
         console.error("Google callback error:", err);
-        return res.redirect("http://localhost:5173?error=auth_failed");
+        return res.redirect(`${process.env.CLIENT_URL}?error=auth_failed`);
       }
 
       // User not found - account doesn't exist
       if (!user && info && info.message === 'no_account') {
         return res.redirect(
-          `http://localhost:5173?error=no_account&email=${encodeURIComponent(info.email)}&message=${encodeURIComponent('This account does not exist. Please sign up first.')}`
+          `${process.env.CLIENT_URL}?error=no_account&email=${encodeURIComponent(info.email)}&message=${encodeURIComponent('This account does not exist. Please sign up first.')}`
         );
       }
 
       // Other authentication failure
       if (!user) {
-        return res.redirect("http://localhost:5173?error=auth_failed");
+        return res.redirect(`${process.env.CLIENT_URL}?error=auth_failed`);
       }
 
       // Success - generate token
@@ -53,11 +53,11 @@ router.get(
         );
 
         res.redirect(
-          `http://localhost:5173/auth/callback?token=${token}&email=${encodeURIComponent(user.email)}`
+          `${process.env.CLIENT_URL}/auth/callback?token=${token}&email=${encodeURIComponent(user.email)}`
         );
       } catch (error) {
         console.error("Token generation error:", error);
-        res.redirect("http://localhost:5173?error=auth_failed");
+        res.redirect(`${process.env.CLIENT_URL}?error=auth_failed`);
       }
     })(req, res, next);
   }
@@ -80,19 +80,19 @@ router.get(
     passport.authenticate("github", { session: false }, (err, user, info) => {
       if (err) {
         console.error("GitHub callback error:", err);
-        return res.redirect("http://localhost:5173?error=auth_failed");
+        return res.redirect(`${process.env.CLIENT_URL}?error=auth_failed`);
       }
 
       // User not found - account doesn't exist
       if (!user && info && info.message === 'no_account') {
         return res.redirect(
-          `http://localhost:5173?error=no_account&email=${encodeURIComponent(info.email || '')}&message=${encodeURIComponent('This account does not exist. Please sign up first.')}`
+          `${process.env.CLIENT_URL}?error=no_account&email=${encodeURIComponent(info.email || '')}&message=${encodeURIComponent('This account does not exist. Please sign up first.')}`
         );
       }
 
       // Other authentication failure
       if (!user) {
-        return res.redirect("http://localhost:5173?error=auth_failed");
+        return res.redirect(`${process.env.CLIENT_URL}?error=auth_failed`);
       }
 
       // Success - generate token
@@ -104,11 +104,11 @@ router.get(
         );
 
         res.redirect(
-          `http://localhost:5173/auth/callback?token=${token}&email=${encodeURIComponent(user.email)}`
+          `${process.env.CLIENT_URL}/auth/callback?token=${token}&email=${encodeURIComponent(user.email)}`
         );
       } catch (error) {
         console.error("Token generation error:", error);
-        res.redirect("http://localhost:5173?error=auth_failed");
+        res.redirect(`${process.env.CLIENT_URL}?error=auth_failed`);
       }
     })(req, res, next);
   }

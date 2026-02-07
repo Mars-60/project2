@@ -27,7 +27,7 @@ exports.signup = async (req, res) => {
 
     if (!validateEmail(email)) {
       return res.status(400).json({
-        message: "Email must end with .com or .in",
+       message: "Please enter a valid email address",
       });
     }
 

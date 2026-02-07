@@ -5,7 +5,7 @@ const User = require("../models/User");
 passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: "/api/auth/github/callback",
+  callbackURL: "https://gitzy-backend.onrender.com/api/auth/github/callback",
   authorizationURL: "https://github.com/login/oauth/authorize?prompt=select_account"
 }, async (accessToken, refreshToken, profile, done) => {
       try {
