@@ -101,7 +101,7 @@ return;
 
 const handleOAuthLogin = (provider) => {
   // Clear any existing tokens before OAuth
-  
+
   localStorage.removeItem('token');
   localStorage.removeItem('userEmail');
   
@@ -171,8 +171,10 @@ const handleOAuthLogin = (provider) => {
               focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             />
             {email && !validateEmail(email) && (
-              <p className="text-xs text-red-400 mt-1">Email must end with .com or .in</p>
-            )}
+  <p className="text-xs text-red-400 mt-1">
+    Please enter a valid email address
+  </p>
+)}
           </div>
 
           {/* Password */}
