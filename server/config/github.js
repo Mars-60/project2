@@ -15,7 +15,7 @@ passport.use(new GitHubStrategy({
           email = profile.emails[0].value.toLowerCase();
         }
 
-        // Only look for existing user, don't create
+        // Only looks for existing user, doesn't create
         let user = await User.findOne({
           $or: [
             { githubId: profile.id },
@@ -24,14 +24,14 @@ passport.use(new GitHubStrategy({
         });
 
         if (!user) {
-          // User doesn't exist - return error to redirect to signup
+          // User doesn't exist - returns error to redirect to signup
           return done(null, false, { 
             message: 'no_account',
             email: email
           });
         }
 
-        // User exists - link GitHub ID if not already linked
+        // User exists - links GitHub ID if not already linked
         if (!user.githubId) {
           user.githubId = profile.id;
           await user.save();

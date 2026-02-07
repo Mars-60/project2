@@ -82,13 +82,12 @@ exports.analyzeFile = async (req, res) => {
     }
   }
 };
-// In your aiController.js or wherever you handle /api/ai/repo/ask
 
 exports.askRepoQuestion = async (req, res) => {
   try {
     const { question, repoTree } = req.body;
 
-    // ✅ CREATE A SUMMARY instead of sending full tree
+    // CREATES A SUMMARY instead of sending full tree
     const treeSummary = createTreeSummary(repoTree);
 
     const prompt = `You are analyzing a GitHub repository. Here's a summary of the repository structure:
@@ -99,7 +98,7 @@ User question: ${question}
 
 Please provide a helpful answer based on the repository structure above.`;
 
-    // Call your AI API (Groq)
+    // Calls AI API (Groq)
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -140,7 +139,7 @@ Please provide a helpful answer based on the repository structure above.`;
   }
 };
 
-// ✅ HELPER FUNCTION: Create a concise tree summary
+// HELPER FUNCTION: Creates a concise tree summary
 function createTreeSummary(tree, maxDepth = 2) {
   const summary = {
     folders: [],
@@ -265,7 +264,7 @@ exports.askQuestionStream = async (req, res) => {
     res.end();
   }
 };
-// Optional: Helper to clear cache (useful for debugging)
+
 exports.clearCache = (req, res) => {
   const { owner, repo, path } = req.query;
   

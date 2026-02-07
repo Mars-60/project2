@@ -2,7 +2,6 @@ const githubService = require("../services/githubService");
 //In-memory cache
 const repoCache=new Map();
 const fileCache=new Map();
-
 const axios = require("axios");
 
 
@@ -83,10 +82,27 @@ exports.getRepoTree = async (req, res) => {
       data:filtered,
     });
 
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ message: "Failed to fetch repo" });
+  }catch (err) {
+  const status = err.response?.status;
+
+  // Repo does not exist
+  if (status === 404) {
+    return res.status(404).json({
+      message: "Repository not found. Please check the link."
+    });
   }
+
+  // Private repo
+  if (status === 403) {
+    return res.status(403).json({
+      message: "This repository is private. Please make it public."
+    });
+  }
+
+  console.error(err.response?.data || err.message);
+  res.status(500).json({ message: "Failed to fetch repo" });
+}
+
 };
 
 
@@ -122,7 +138,7 @@ exports.getFile = async (req, res) => {
       }
     );
 
-    // ✅ SAFETY CHECK 1: Path is a folder
+    //  SAFETY CHECK 1: Path is a folder
     if (Array.isArray(response.data)) {
       return res.status(400).json({
         message: "This path is a folder, not a file",
@@ -130,7 +146,7 @@ exports.getFile = async (req, res) => {
       });
     }
 
-    // ✅ SAFETY CHECK 2: Unsupported / binary file
+    //  SAFETY CHECK 2: Unsupported / binary file
     if (
       response.data.type !== "file" ||
       !response.data.content ||
@@ -217,8 +233,6 @@ exports.getFullRepoTree = async (req, res) => {
   }
 };
 
-// ADD THIS FUNCTION TO YOUR repoController.js
-// (Add it right before the last line: module.exports = ...)
 
 // GET folder/path contents (for expanding folders)
 exports.getFolderContents = async (req, res) => {

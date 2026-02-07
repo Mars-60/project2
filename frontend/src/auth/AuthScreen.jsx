@@ -29,8 +29,8 @@ function AuthScreen({ onLogin }) {
 
   // Email validation
   const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.(com|in)$/i;
-    return emailRegex.test(email);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+return emailRegex.test(email);
   };
 
   // Password validation
@@ -48,8 +48,8 @@ function AuthScreen({ onLogin }) {
     }
 
     if (!validateEmail(email)) {
-      setError('Email must end with .com or .in');
-      return;
+      setError('Please enter a valid email address');
+return;
     }
 
     if (!validatePassword(password)) {
@@ -100,7 +100,8 @@ function AuthScreen({ onLogin }) {
   };
 
 const handleOAuthLogin = (provider) => {
-  // ✅ Clear any existing tokens before OAuth
+  // Clear any existing tokens before OAuth
+  
   localStorage.removeItem('token');
   localStorage.removeItem('userEmail');
   
@@ -159,7 +160,7 @@ const handleOAuthLogin = (provider) => {
           <div>
             <input
               type="email"
-              placeholder="Email (must end with .com or .in)"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);

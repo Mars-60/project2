@@ -8,7 +8,7 @@ import WorkspaceView from "./workspace/WorkspaceView.jsx";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [currentView, setCurrentView] = useState("home"); // 'home' or 'workspace'
+  const [currentView, setCurrentView] = useState("home"); 
   const [repoUrl, setRepoUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +18,7 @@ function App() {
     const email = localStorage.getItem('userEmail');
     
     if (token && email) {
-      // Verify token is still valid
+      // Verifying if token is still valid
       fetch('http://localhost:5000/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sparkles, User, Home } from "lucide-react";
+import { parseGitHubRepo } from "../utils/parseGitHubRepo";
 
 function HomeScreen({ onAnalyze, userEmail, onLogout }) {
   const [repoUrl, setRepoUrl] = useState("");
@@ -7,6 +8,17 @@ function HomeScreen({ onAnalyze, userEmail, onLogout }) {
 
   const handleAnalyze = () => {
     if (!repoUrl.trim()) return;
+
+    // Validating GitHub repo BEFORE navigation
+    const result = parseGitHubRepo(repoUrl);
+
+    // If invalid -> stay on HomeScreen
+    if (!result.valid) {
+      alert(result.error);
+      return;
+    }
+
+    // If valid -> go to Workspace
     onAnalyze(repoUrl);
   };
 
@@ -23,7 +35,7 @@ function HomeScreen({ onAnalyze, userEmail, onLogout }) {
         position: "relative",
       }}
     >
-      {/* 🔝 Top-right actions */}
+      {/* Top-right actions */}
       <div
         style={{
           position: "absolute",
@@ -118,41 +130,75 @@ function HomeScreen({ onAnalyze, userEmail, onLogout }) {
           textAlign: "center",
         }}
       >
-        {/* Branding - Enhanced with gradient and glow */}
+        {/* Branding - Enhanced */}
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: "12px",
-            marginBottom: "20px",
+            gap: "8px", // Reduced from 16px
+            marginBottom: "32px",
           }}
         >
+          {/* Logo - shifted left */}
           <div
             style={{
-              padding: "8px",
-              borderRadius: "12px",
-              //background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-              //boxShadow: "0 0 20px rgba(34, 197, 94, 0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              gap: "12px",
+              marginRight: "20px", // Shift left by adding right margin
             }}
           >
-              <Sparkles className="h-7 w-7 text-white" stroke="#86efac"/>
-          <h1
+            <Sparkles 
+              size={40} 
+              className="text-white" 
+              stroke="#86efac"
+              style={{
+                filter: "drop-shadow(0 0 8px rgba(134, 239, 172, 0.4))",
+              }}
+            />
+            <h1
+              style={{
+                fontSize: "56px",
+                fontWeight: "700",
+                letterSpacing: "-0.02em",
+                background: "linear-gradient(135deg, #22c55e 0%, #86efac 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                margin: 0,
+              }}
+            >
+              Gitzy
+            </h1>
+          </div>
+
+          {/* Tagline - no decorative lines */}
+          <div
             style={{
-              fontSize: "48px",
-              fontWeight: "700",
-              letterSpacing: "-0.02em",
-              background: "linear-gradient(135deg, #22c55e 0%, #86efac 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              position: "relative",
+              padding: "0", // Removed padding
             }}
           >
-            Gitzy
-          </h1>
+            {/* Tagline */}
+            <p
+              style={{
+                fontSize: "13px",
+                fontWeight: "600",
+                color: "#6b7280",
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                margin: 0,
+                background: "linear-gradient(90deg, #6b7280, #9ca3af, #6b7280)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              AI-Powered GitHub Repository Analyzer
+            </p>
           </div>
         </div>
 

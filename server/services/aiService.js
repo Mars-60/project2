@@ -115,7 +115,7 @@ exports.getFallbackAnalysis = (code) => {
   };
 };
 
-// ✨ NEW: Improved answer function with better formatting
+//  NEW: Improved answer function with better formatting
 exports.answerQuestion = async (intelligence, question) => {
   console.log("🤖 answerQuestion: Starting...");
   console.log("📝 Question:", question);
@@ -148,7 +148,7 @@ When answering questions:
   return response.choices[0].message.content;
 };
 
-// ✨ NEW: Much better streaming with proper formatting
+// NEW: Much better streaming with proper formatting
 exports.answerQuestionStream = async function* (code, question) {
   const completion = await client.chat.completions.create({
     model: "llama-3.1-8b-instant",

@@ -1,35 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { Sparkles, Home, User, ChevronRight, ChevronDown, FileText, Folder, Send, MessageSquare, LogOut } from "lucide-react";
+import { parseGitHubRepo } from "../utils/parseGitHubRepo";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
-// ============================================
-// PARSE GITHUB URL
-// ============================================
-function parseGitHubUrl(url) {
-  // Remove trailing slash
-  url = url.replace(/\/$/, '');
-  
-  // Extract owner/repo from various formats
-  const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-  if (match) {
-    return { 
-      owner: match[1], 
-      repo: match[2].replace(/\.git$/, '') 
-    };
-  }
-  
-  // Direct format: owner/repo
-  const directMatch = url.match(/^([^\/]+)\/([^\/]+)$/);
-  if (directMatch) {
-    return { owner: directMatch[1], repo: directMatch[2] };
-  }
-  
-  return null;
-}
+// WORKSPACE NAVBAR 
 
-// ============================================
-// WORKSPACE NAVBAR (UPDATED WITH HOME BUTTON)
-// ============================================
 function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat, userEmail, onLogout, onGoHome }) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const menuRef = useRef(null);
@@ -79,7 +55,7 @@ function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat, userEmail, onLo
           <span>Repo Chat</span>
         </button>
         
-        {/* Home Button - Now properly navigates */}
+        {/* Home Button */}
         <button
           onClick={onGoHome}
           className="p-2 rounded-lg bg-[#27272a]/40 hover:bg-[#27272a]/60 transition-all text-[#22c55e] hover:text-[#16a34a] hover:scale-105"
@@ -127,9 +103,7 @@ function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat, userEmail, onLo
   );
 }
 
-// ============================================
 // FILE/FOLDER ITEM COMPONENT
-// ============================================
 function FileTreeItem({ item, level, selectedFile, onFileSelect, onFolderToggle, expandedFolders }) {
   const isDir = item.type === "dir";
   const isExpanded = expandedFolders.has(item.path);
@@ -205,9 +179,7 @@ function FileTreeItem({ item, level, selectedFile, onFileSelect, onFolderToggle,
   );
 }
 
-// ============================================
 // REPO SIDEBAR
-// ============================================
 function RepoSidebar({ tree, loading, selectedFile, onFileSelect, onFolderToggle, expandedFolders }) {
   return (
     <aside className="w-64 bg-[#0f0f11] border-r border-[#27272a]/50 flex flex-col">
@@ -251,9 +223,7 @@ function RepoSidebar({ tree, loading, selectedFile, onFileSelect, onFolderToggle
   );
 }
 
-// ============================================
 // WELCOME VIEW
-// ============================================
 function WelcomeView({ onSuggestionClick }) {
   const suggestions = [
     "What is this repo about?",
@@ -304,9 +274,7 @@ function WelcomeView({ onSuggestionClick }) {
   );
 }
 
-// ============================================
 // FILE VIEW
-// ============================================
 function FileView({ file, messages, fileContent, loadingContent }) {
   const containerRef = useRef(null);
   const bottomRef = useRef(null);
@@ -371,93 +339,11 @@ function FileView({ file, messages, fileContent, loadingContent }) {
               }`}
             >
               {msg.role === "assistant" ? (
-                <ReactMarkdown
-                  components={{
-                    h1: ({ children }) => (
-                      <h1 className="text-lg font-bold text-[#22c55e] mt-4 mb-3 pb-2 border-b border-[#27272a]">
-                        {children}
-                      </h1>
-                    ),
-                    h2: ({ children }) => (
-                      <h2 className="text-base font-semibold text-[#22c55e] mt-4 mb-2">
-                        {children}
-                      </h2>
-                    ),
-                    h3: ({ children }) => (
-                      <h3 className="text-sm font-semibold text-[#d1d5db] mt-3 mb-1">
-                        {children}
-                      </h3>
-                    ),
-                    p: ({ children }) => (
-                      <p className="mb-3 leading-relaxed text-[#d1d5db]">
-                        {children}
-                      </p>
-                    ),
-                    ul: ({ children }) => (
-                      <ul className="mb-3 space-y-1">
-                        {children}
-                      </ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol className="mb-3 space-y-1 list-decimal list-inside">
-                        {children}
-                      </ol>
-                    ),
-                    li: ({ children }) => (
-                      <li className="ml-4 text-[#d1d5db] leading-relaxed">
-                        • {children}
-                      </li>
-                    ),
-                    code: ({ inline, children }) => 
-                      inline ? (
-                        <code className="px-1.5 py-0.5 rounded bg-[#27272a] text-[#22c55e] text-xs font-mono">
-                          {children}
-                        </code>
-                      ) : (
-                        <code className="block p-3 my-2 rounded-lg bg-[#18181b] border border-[#27272a] text-[#9ca3af] text-xs font-mono overflow-x-auto">
-                          {children}
-                        </code>
-                      ),
-                    pre: ({ children }) => (
-                      <pre className="mb-3 p-3 rounded-lg bg-[#18181b] border border-[#27272a] overflow-x-auto">
-                        {children}
-                      </pre>
-                    ),
-                    blockquote: ({ children }) => (
-                      <blockquote className="pl-4 border-l-2 border-[#22c55e] text-[#9ca3af] italic my-3">
-                        {children}
-                      </blockquote>
-                    ),
-                    strong: ({ children }) => (
-                      <strong className="font-semibold text-[#22c55e]">
-                        {children}
-                      </strong>
-                    ),
-                    em: ({ children }) => (
-                      <em className="italic text-[#d1d5db]">
-                        {children}
-                      </em>
-                    ),
-                    a: ({ href, children }) => (
-                      <a 
-                        href={href} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[#22c55e] hover:text-[#16a34a] underline decoration-dotted"
-                      >
-                        {children}
-                      </a>
-                    ),
-                    hr: () => (
-                      <hr className="my-4 border-[#27272a]" />
-                    ),
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              ) : (
-                <span className="text-[#d1d5db]">{msg.content}</span>
-              )}
+  <MarkdownRenderer content={msg.content} />
+) : (
+  <span className="text-[#d1d5db]">{msg.content}</span>
+)}
+
             </div>
           </div>
         ))}
@@ -467,9 +353,7 @@ function FileView({ file, messages, fileContent, loadingContent }) {
   );
 }
 
-// ============================================
 // CHAT INPUT BAR
-// ============================================
 function ChatInputBar({ onSend, placeholder = "Ask Gitzy about this repository…" }) {
   const [input, setInput] = useState("");
 
@@ -505,9 +389,7 @@ function ChatInputBar({ onSend, placeholder = "Ask Gitzy about this repository�
   );
 }
 
-// ============================================
-// REPO CHAT VIEW (Full Screen)
-// ============================================
+// REPO CHAT VIEW 
 function RepoChatView({ messages }) {
   const containerRef = useRef(null);
   const bottomRef = useRef(null);
@@ -544,51 +426,10 @@ function RepoChatView({ messages }) {
                     ? "bg-[#27272a]/40 text-[#d1d5db]"
                     : "bg-[#22c55e]/10 border border-[#22c55e]/20"
                 }`}
-              >
-                {msg.role === "assistant" ? (
-                  <ReactMarkdown
-                    components={{
-                      h1: ({ children }) => (
-                        <h1 className="text-lg font-bold text-[#22c55e] mt-4 mb-3 pb-2 border-b border-[#27272a]">
-                          {children}
-                        </h1>
-                      ),
-                      h2: ({ children }) => (
-                        <h2 className="text-base font-semibold text-[#22c55e] mt-4 mb-2">
-                          {children}
-                        </h2>
-                      ),
-                      p: ({ children }) => (
-                        <p className="mb-3 leading-relaxed text-[#d1d5db]">
-                          {children}
-                        </p>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="mb-3 space-y-1">
-                          {children}
-                        </ul>
-                      ),
-                      li: ({ children }) => (
-                        <li className="ml-4 text-[#d1d5db] leading-relaxed">
-                          • {children}
-                        </li>
-                      ),
-                      code: ({ inline, children }) => 
-                        inline ? (
-                          <code className="px-1.5 py-0.5 rounded bg-[#27272a] text-[#22c55e] text-xs font-mono">
-                            {children}
-                          </code>
-                        ) : (
-                          <code className="block p-3 my-2 rounded-lg bg-[#18181b] border border-[#27272a] text-[#9ca3af] text-xs font-mono overflow-x-auto">
-                            {children}
-                          </code>
-                        ),
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+              >{msg.role === "assistant" ? (
+                <MarkdownRenderer content={msg.content} />
                 ) : (
-                  msg.content
+              msg.content
                 )}
               </div>
             </div>
@@ -600,9 +441,7 @@ function RepoChatView({ messages }) {
   );
 }
 
-// ============================================
 // MAIN WORKSPACE VIEW
-// ============================================
 function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -619,44 +458,52 @@ function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
     ? fileChats[selectedFile.path] || []
     : fileChats.__general__ || [];
 
-  // Parse the GitHub URL
-  const parsedRepo = parseGitHubUrl(repoUrl);
 
-  // Fetch root tree on mount
-  useEffect(() => {
-    async function fetchTree() {
-      if (!parsedRepo) {
-        console.error("Invalid repo URL");
-        setLoading(false);
+const parsedRepo = parseGitHubRepo(repoUrl);
+
+useEffect(() => {
+  async function fetchTree() {
+    if (!parsedRepo.valid) {
+      console.error("Invalid repo URL");
+      alert(parsedRepo.error || "Invalid repository URL");
+      onGoHome();
+      return;
+    }
+
+    const { owner, repo } = parsedRepo;
+
+    try {
+      console.log("Fetching repo:", owner, repo);
+
+      const res = await fetch(
+        `http://localhost:5000/api/repo/${owner}/${repo}`
+      );
+
+      // If backend returned error (private repo / not found)
+      if (!res.ok) {
+        const errorData = await res.json(); // read backend message
+        alert(errorData.message || "Failed to load repository");
+
+        // Goes back to HomeScreen
+        onGoHome();
         return;
       }
 
-      const { owner, repo } = parsedRepo;
+      const data = await res.json();
+      console.log("API Response:", data);
 
-      try {
-        console.log("Fetching repo:", owner, repo);
-
-        const res = await fetch(
-          `http://localhost:5000/api/repo/${owner}/${repo}`
-        );
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        console.log("API Response:", data);
-
-        setTree(data.data || []);
-      } catch (err) {
-        console.error("Failed to load repo:", err);
-      } finally {
-        setLoading(false);
-      }
+      setTree(data.data || []);
+    } catch (err) {
+      console.error("Failed to load repo:", err);
+      alert("Server error while loading repository.");
+      onGoHome();
+    } finally {
+      setLoading(false);
     }
+  }
 
-    fetchTree();
-  }, [repoUrl]);
+  fetchTree();
+}, [repoUrl, onGoHome]); 
 
   // Toggle folder expansion
   const handleFolderToggle = async (folder) => {
@@ -735,7 +582,7 @@ function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
     const { owner, repo } = parsedRepo;
 
     try {
-      // 1️⃣ Fetch file content
+      // 1️. Fetch file content
       const res = await fetch(
         `http://localhost:5000/api/repo/${owner}/${repo}/file?path=${encodeURIComponent(
           file.path
@@ -749,7 +596,7 @@ function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
       const data = await res.json();
       setFileContent(data.code || "// No content available");
 
-      // 2️⃣ Auto-analyze file with AI
+      // 2️. Auto-analyze file with AI
       console.log("🤖 Analyzing file:", file.path);
       const analyzeRes = await fetch(
         `http://localhost:5000/api/ai/${owner}/${repo}/analyze-file`,
@@ -811,13 +658,13 @@ function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
     if (!selectedFile || isRepoChat) {
       console.log("💬 Repo-level question:", content);
 
-      // 1️⃣ Add user message
+      // 1️. Add user message
       setFileChats((prev) => ({
         ...prev,
         __general__: [...(prev.__general__ || []), { role: "user", content }],
       }));
 
-      // 2️⃣ Add thinking message
+      // 2️. Add thinking message
       setFileChats((prev) => ({
         ...prev,
         __general__: [
@@ -861,7 +708,7 @@ function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
       return;
     }
 
-    // FILE-LEVEL QUESTION (existing code)
+    // FILE-LEVEL QUESTION (for existing code)
     if (!selectedFile || !parsedRepo) return;
 
     const filePath = selectedFile.path;
@@ -869,13 +716,13 @@ function WorkspaceView({ repoUrl, userEmail, onLogout, onGoHome }) {
 
     console.log("💬 Sending message:", content);
 
-    // 1️⃣ Add user message
+    // 1️. Add user message
     setFileChats((prev) => ({
       ...prev,
       [filePath]: [...(prev[filePath] || []), { role: "user", content }],
     }));
 
-    // 2️⃣ Add empty assistant message (for streaming)
+    // 2️. Add empty assistant message (for streaming)
     setFileChats((prev) => ({
       ...prev,
       [filePath]: [

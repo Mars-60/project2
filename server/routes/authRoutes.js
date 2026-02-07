@@ -14,12 +14,12 @@ router.get("/me", authMiddleware, async (req, res) => {
   });
 });
 
-// ✅ GOOGLE OAUTH
+// GOOGLE OAUTH
 router.get(
   "/google",
   passport.authenticate("google", { 
     scope: ["email", "profile"],
-    session: false // ✅ Explicitly disable session
+    session: false //  Explicitly disable session
   })
 );
 
@@ -63,13 +63,13 @@ router.get(
   }
 );
 
-// ✅ GITHUB OAUTH
+// GITHUB OAUTH
 router.get(
   "/github",
   passport.authenticate("github", {
     scope: ["user:email"],
     session: false,
-    prompt: "select_account"   // ⭐ FORCE account chooser
+    prompt: "select_account"   // FORCE account chooser
   })
 );
 

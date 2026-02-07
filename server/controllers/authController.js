@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 
 // Email validation helper
 const validateEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.(com|in)$/i;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
   return emailRegex.test(email);
 };
 

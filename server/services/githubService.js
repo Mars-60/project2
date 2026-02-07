@@ -78,7 +78,6 @@ exports.getRepoTreeRecursive = async (
     return treeCache.get(cacheKey);
   }
 
-  const url=`https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const response = await githubClient.get(`/repos/${owner}/${repo}/contents/${path}`);
   const items = await response.data;
   const result = [];
