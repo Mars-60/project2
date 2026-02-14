@@ -25,6 +25,12 @@ Instead of manually exploring dozens of files, you can paste a repository link a
 **Database**
 - MongoDB (sessions & workspace data)
 
+**Authentication & Security**
+- JWT Authentication (secure sessions)
+- Google OAuth 2.0 login
+- GitHub OAuth login
+- Protected routes & session handling
+
 **APIs & AI Integration**
 - GitHub REST API → repository & file fetching  
 - Groq API → AI summaries & repo chat
@@ -34,6 +40,7 @@ Instead of manually exploring dozens of files, you can paste a repository link a
 - Real-world API integration
 - AI powered developer tooling
 - Scalable backend design
+- Authentication & authorization
 - Performance optimization (caching – in progress)
 
 ---
@@ -114,14 +121,31 @@ Perfect for:
 
 ---
 
+### 🔐 6. Secure Authentication System
+Gitzy includes a complete modern authentication flow.
+
+Users can sign in using:
+- Email & Password (JWT authentication)
+- Google OAuth
+- GitHub OAuth
+
+Features:
+- Secure token-based sessions
+- Protected workspaces
+- Personalized repository history
+- Seamless login experience
+
+---
+
 ## 🏗️ How It Works (Architecture)
 
-1. User submits GitHub repository link  
-2. Backend fetches repository data using GitHub API  
-3. File structure & contents are processed  
-4. AI generates summaries and answers via Groq API  
-5. Session data stored in MongoDB  
-6. Frontend workspace displays results
+1. User authenticates via JWT / Google / GitHub OAuth  
+2. User submits GitHub repository link  
+3. Backend fetches repository data using GitHub API  
+4. File structure & contents are processed  
+5. AI generates summaries and answers via Groq API  
+6. Session & workspace data stored in MongoDB  
+7. Frontend workspace displays personalized results  
 
 ---
 
@@ -136,3 +160,9 @@ Currently working on:
 - Better chat context handling
 
 ---
+
+## 👨‍💻 Author
+
+**Adnan Raza**
+
+If you found this project useful, consider giving it a ⭐
