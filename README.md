@@ -10,7 +10,7 @@ Instead of manually exploring dozens of files, you can paste a repository link a
 ## 🧠 Skills & Technologies Demonstrated
 
 **Frontend**
-- React + Vite
+- ReactJS
 - Tailwind CSS
 - Component-based architecture
 - Responsive UI & workspace layout
@@ -28,7 +28,7 @@ Instead of manually exploring dozens of files, you can paste a repository link a
 **Authentication & Security**
 - JWT Authentication (secure sessions)
 - Google OAuth 2.0 login
-- GitHub OAuth login
+- GitHub OAuth 2.0 login
 - Protected routes & session handling
 
 **APIs & AI Integration**
