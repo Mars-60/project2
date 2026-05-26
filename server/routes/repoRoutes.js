@@ -11,7 +11,7 @@ router.get(
   repoController.getFolderContents
 );
 
-// Most general route LAST
+// Most general route last
 router.get("/:owner/:repo", repoController.getRepoTree);
 
 module.exports = router;
