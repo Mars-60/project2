@@ -23,7 +23,6 @@ router.get(
     prompt: "select_account"   // ← only change
   })
 );
-config/g
 
 router.get(
   "/google/callback",
