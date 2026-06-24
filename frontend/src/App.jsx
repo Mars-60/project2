@@ -1,33 +1,32 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AuthScreen from "./auth/AuthScreen.jsx";
 import AuthCallback from "./auth/AuthCallback.jsx";
 import HomeScreen from "./home/HomeScreen.jsx";
 import WorkspaceView from "./workspace/WorkspaceView.jsx";
+import LandingPage from "./landing/LandingPage.jsx";  // ← new
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [currentView, setCurrentView] = useState("home"); 
+  const [currentView, setCurrentView] = useState("landing"); // ← changed from "home"
   const [repoUrl, setRepoUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Check for existing auth on mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     const email = localStorage.getItem('userEmail');
     
     if (token && email) {
       fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(res => res.json())
         .then(data => {
           if (data.userId) {
             setIsAuthenticated(true);
             setUserEmail(email);
+            setCurrentView("home"); // ← skip landing if already logged in
           } else {
             localStorage.removeItem('token');
             localStorage.removeItem('userEmail');
@@ -37,9 +36,7 @@ function App() {
           localStorage.removeItem('token');
           localStorage.removeItem('userEmail');
         })
-        .finally(() => {
-          setLoading(false);
-        });
+        .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
@@ -50,6 +47,7 @@ function App() {
     localStorage.setItem('userEmail', email);
     setIsAuthenticated(true);
     setUserEmail(email);
+    setCurrentView("home");
   };
 
   const handleLogout = () => {
@@ -58,7 +56,7 @@ function App() {
     setIsAuthenticated(false);
     setUserEmail("");
     setRepoUrl("");
-    setCurrentView("home");
+    setCurrentView("landing"); // ← goes back to landing on logout
   };
 
   const handleAnalyze = (url) => {
@@ -82,40 +80,23 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* OAuth Callback Route */}
         <Route path="/auth/callback" element={<AuthCallback onLogin={handleLogin} />} />
-
-        {/* Protected Routes */}
-        {!isAuthenticated ? (
-          <Route path="*" element={<AuthScreen onLogin={handleLogin} onLogout={handleLogout} />} />
-        ) : (
-          <>
-            {currentView === "home" ? (
-              <Route 
-                path="*" 
-                element={
-                  <HomeScreen 
-                    onAnalyze={handleAnalyze} 
-                    userEmail={userEmail}
-                    onLogout={handleLogout}
-                  />
-                } 
+        <Route path="*" element={
+          !isAuthenticated ? (
+            currentView === "landing" ? (
+              <LandingPage
+                onGetStarted={() => setCurrentView("auth")}
+                onSignIn={() => setCurrentView("auth")}
               />
             ) : (
-              <Route 
-                path="*" 
-                element={
-                  <WorkspaceView 
-                    repoUrl={repoUrl} 
-                    userEmail={userEmail} 
-                    onLogout={handleLogout}
-                    onGoHome={handleGoHome}
-                  />
-                } 
-              />
-            )}
-          </>
-        )}
+              <AuthScreen onLogin={handleLogin} onLogout={handleLogout} />
+            )
+          ) : currentView === "home" ? (
+            <HomeScreen onAnalyze={handleAnalyze} userEmail={userEmail} onLogout={handleLogout} />
+          ) : (
+            <WorkspaceView repoUrl={repoUrl} userEmail={userEmail} onLogout={handleLogout} onGoHome={handleGoHome} />
+          )
+        } />
       </Routes>
     </BrowserRouter>
   );
