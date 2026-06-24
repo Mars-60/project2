@@ -84,11 +84,25 @@ return;
         localStorage.setItem('userEmail', email);
         onLogin(data.token, email);
  } else {
-  localStorage.removeItem('token');      // ← add this
-  localStorage.removeItem('userEmail');  // ← add this
-  setIsLogin(true);
-  setPassword('');
-  setError('Account created! Please sign in.');  // ← also remove the duplicate setError above this
+  // Auto-login after signup
+  const loginResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const loginData = await loginResponse.json();
+
+  if (loginResponse.ok) {
+    localStorage.setItem('token', loginData.token);
+    localStorage.setItem('userEmail', email);
+    onLogin(loginData.token, email);  // directly logs in, no redirect
+  } else {
+    // Fallback if auto-login fails
+    setIsLogin(true);
+    setPassword('');
+    setError('Account created! Please sign in.');
+  }
 }
 
     } catch (err) {
