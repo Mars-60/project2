@@ -8,98 +8,75 @@ import MarkdownRenderer from "../components/MarkdownRenderer";
 
 function WorkspaceNavbar({ repoUrl, onRepoChatClick, isRepoChat, userEmail, onLogout, onGoHome }) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showRepoUrl, setShowRepoUrl] = useState(false);
   const menuRef = useRef(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowAccountMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handler = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowAccountMenu(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Extract short repo name for mobile
+  const repoShort = repoUrl.replace("https://github.com/", "").replace("http://github.com/", "");
+
   return (
-    <nav className="h-16 flex items-center justify-between px-6 bg-[#0b0b0f]/90 backdrop-blur-md border-b border-[#27272a]/50 sticky top-0 z-50">
-      {/* Left: Brand */}
-      <div className="flex items-center gap-3 ">
-        <Sparkles size={24} className="text-[#22c55e]" />
-        <span className="text-lg font-semibold text-[#e5e7eb] tracking-tight">
-          Gitzy
-        </span>
-      </div>
-
-      {/* Center: Repo URL */}
-      <div className="max-w-md px-4 py-2 rounded-lg bg-[#18181b]/60 border border-[#27272a]/40">
-        <div className="flex items-center gap-2 text-xs text-[#9ca3af]">
-          <span className="opacity-60">Repository:</span>
-          <span className="text-[#d1d5db] font-mono truncate">{repoUrl}</span>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        .nav-repo-pill { transition: all 0.15s; }
+        .nav-repo-pill:hover { border-color: #1e293b !important; }
+        .nav-icon-btn { transition: all 0.15s; }
+        .nav-icon-btn:hover { background: #0d1117 !important; color: #22c55e !important; }
+        .repo-chat-btn-active { box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+        @media (max-width: 640px) {
+          .nav-repo-center { display: none !important; }
+          .nav-repo-mobile { display: flex !important; }
+        }
+      `}</style>
+      <nav style={{ height: "56px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", background: "rgba(6,8,16,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid #0f172a", position: "sticky", top: 0, zIndex: 50, fontFamily: "'Inter', sans-serif", gap: "8px" }}>
+        {/* Left: Brand */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+          <Sparkles size={18} color="#22c55e" />
+          <span style={{ fontSize: "16px", fontWeight: "700", color: "#22c55e", letterSpacing: "-0.02em" }}>Gitzy</span>
         </div>
-      </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-2">
-        {/* Repo Chat Button */}
-        <button 
-          onClick={onRepoChatClick}
-          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
-            isRepoChat
-              ? 'bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/30 shadow-lg shadow-[#22c55e]/5'
-              : 'bg-[#27272a]/40 text-[#9ca3af] hover:text-[#e5e7eb] hover:bg-[#27272a]/60 border border-transparent'
-          }`}
-        >
-          <MessageSquare size={16} />
-          <span>Repo Chat</span>
-        </button>
-        
-        {/* Home Button */}
-        <button
-          onClick={onGoHome}
-          className="p-2 rounded-lg bg-[#27272a]/40 hover:bg-[#27272a]/60 transition-all text-[#22c55e] hover:text-[#16a34a] hover:scale-105"
-          title="Go to Home"
-        >
-          <Home size={18} />
-        </button>
+        {/* Center: repo URL (hidden on mobile) */}
+        <div className="nav-repo-center" style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 12px" }}>
+          <div style={{ padding: "6px 12px", borderRadius: "8px", background: "#0d1117", border: "1px solid #0f172a", maxWidth: "380px", width: "100%" }}>
+            <span style={{ fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#334155", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{repoShort}</span>
+          </div>
+        </div>
 
-        {/* Account Menu */}
-        <div className="relative" ref={menuRef}>
-          <button 
-            onClick={() => setShowAccountMenu(!showAccountMenu)}
-            className="p-2 rounded-lg bg-[#27272a]/40 hover:bg-[#27272a]/60 transition-all text-[#22c55e] hover:text-[#16a34a] hover:scale-105"
-            title="Account"
-          >
-            <User size={18} />
+        {/* Right: actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+          <button onClick={onRepoChatClick} className={isRepoChat ? "repo-chat-btn-active" : ""} style={{ padding: "6px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: "600", border: isRepoChat ? "1px solid rgba(0,255,136,0.3)" : "1px solid transparent", background: isRepoChat ? "rgba(0,255,136,0.08)" : "transparent", color: isRepoChat ? "#22c55e" : "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.15s" }}>
+            <MessageSquare size={14} /><span style={{ display: "none", "@media(minWidth:480px)": { display: "inline" } }}>Chat</span>
           </button>
-          
-          {showAccountMenu && (
-            <div className="absolute right-0 mt-2 w-64 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl overflow-hidden z-50">
-              {/* User Info */}
-              <div className="px-4 py-3 border-b border-[#27272a]/50">
-                <p className="text-xs text-[#6b7280] mb-1">Signed in as</p>
-                <p className="text-sm text-[#e5e7eb] font-medium truncate">{userEmail}</p>
-              </div>
-              
-              {/* Menu Items */}
-              <div className="py-2">
-                <button
-                  onClick={() => {
-                    setShowAccountMenu(false);
-                    onLogout();
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-[#e5e7eb] hover:bg-[#27272a]/40 transition-colors flex items-center gap-2"
-                >
-                  <LogOut size={16} />
-                  <span>Sign Out</span>
+          <button className="nav-icon-btn" onClick={onGoHome} title="Home" style={{ padding: "7px", borderRadius: "8px", background: "transparent", border: "none", color: "#475569", cursor: "pointer" }}>
+            <Home size={17} />
+          </button>
+          <div style={{ position: "relative" }} ref={menuRef}>
+            <button className="nav-icon-btn" onClick={() => setShowAccountMenu(!showAccountMenu)} title="Account" style={{ padding: "7px", borderRadius: "8px", background: "transparent", border: "none", color: "#475569", cursor: "pointer" }}>
+              <User size={17} />
+            </button>
+            {showAccountMenu && (
+              <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, background: "#0d1117", border: "1px solid #1e293b", borderRadius: "10px", padding: "8px", minWidth: "200px", zIndex: 50, boxShadow: "0 16px 48px rgba(0,0,0,0.6)" }}>
+                <div style={{ padding: "8px 10px 10px", borderBottom: "1px solid #1e293b", marginBottom: "6px" }}>
+                  <div style={{ fontSize: "11px", color: "#334155", fontFamily: "'JetBrains Mono', monospace", marginBottom: "2px" }}>signed in as</div>
+                  <div style={{ fontSize: "12px", color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis" }}>{userEmail}</div>
+                </div>
+                <button onClick={() => { setShowAccountMenu(false); onLogout(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: "7px", border: "none", background: "transparent", color: "#94a3b8", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#f87171"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}>
+                  <LogOut size={14} /> Sign out
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }
 
@@ -359,29 +336,19 @@ function ChatInputBar({ onSend, placeholder = "Ask Gitzy about this repositoryâ€
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (input.trim()) {
-      onSend(input.trim());
-      setInput("");
-    }
+    if (input.trim()) { onSend(input.trim()); setInput(""); }
   };
 
   return (
-    <div className="px-6 py-4 border-t border-[#27272a]/30 bg-[#0b0b0f]/40 backdrop-blur-sm">
-      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-        <div className="relative flex items-center gap-2 bg-[#18181b] border border-[#27272a] rounded-2xl px-4 py-3 focus-within:border-[#22c55e]/50 focus-within:shadow-lg focus-within:shadow-[#22c55e]/5 transition-all duration-200">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 bg-transparent border-none outline-none text-sm text-[#e5e7eb] placeholder:text-[#6b7280]"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="w-8 h-8 rounded-lg bg-[#22c55e] hover:bg-[#16a34a] disabled:bg-[#27272a] disabled:cursor-not-allowed flex items-center justify-center transition-colors"
-          >
-            <Send size={16} className="text-[#0b0b0f]" />
+    <div style={{ padding: "12px 16px", borderTop: "1px solid #0f172a", background: "rgba(6,8,16,0.95)", backdropFilter: "blur(12px)" }}>
+      <form onSubmit={handleSubmit} style={{ maxWidth: "800px", margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#0d1117", border: "1px solid #1e293b", borderRadius: "12px", padding: "8px 8px 8px 14px", transition: "border-color 0.15s" }}
+          onFocusCapture={e => e.currentTarget.style.borderColor = "#22c55e"}
+          onBlurCapture={e => e.currentTarget.style.borderColor = "#1e293b"}>
+          <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={placeholder}
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "14px", color: "#e2e8f0", fontFamily: "'Inter', sans-serif" }} />
+          <button type="submit" disabled={!input.trim()} style={{ width: "34px", height: "34px", borderRadius: "8px", border: "none", background: input.trim() ? "#22c55e" : "#1e293b", color: input.trim() ? "#060810" : "#334155", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
+            <Send size={15} />
           </button>
         </div>
       </form>
