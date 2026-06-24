@@ -18,7 +18,6 @@ function App() {
     const email = localStorage.getItem('userEmail');
     
     if (token && email) {
-      // Verifying if token is still valid
       fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -30,13 +29,11 @@ function App() {
             setIsAuthenticated(true);
             setUserEmail(email);
           } else {
-            // Token invalid, clear storage
             localStorage.removeItem('token');
             localStorage.removeItem('userEmail');
           }
         })
         .catch(() => {
-          // Network error or invalid token
           localStorage.removeItem('token');
           localStorage.removeItem('userEmail');
         })
@@ -90,7 +87,7 @@ function App() {
 
         {/* Protected Routes */}
         {!isAuthenticated ? (
-          <Route path="*" element={<AuthScreen onLogin={handleLogin} />} />
+          <Route path="*" element={<AuthScreen onLogin={handleLogin} onLogout={handleLogout} />} />
         ) : (
           <>
             {currentView === "home" ? (

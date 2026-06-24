@@ -83,13 +83,13 @@ return;
         localStorage.setItem('token', data.token);
         localStorage.setItem('userEmail', email);
         onLogin(data.token, email);
-      } else {
-        // Auto-login after signup
-        setError('');
-        setIsLogin(true);
-        setPassword('');
-        setError('Account created! Please login.');
-      }
+ } else {
+  localStorage.removeItem('token');      // ← add this
+  localStorage.removeItem('userEmail');  // ← add this
+  setIsLogin(true);
+  setPassword('');
+  setError('Account created! Please sign in.');  // ← also remove the duplicate setError above this
+}
 
     } catch (err) {
       console.error('Auth error:', err);
