@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AuthScreen from "./auth/AuthScreen.jsx";
 import AuthCallback from "./auth/AuthCallback.jsx";
 import HomeScreen from "./home/HomeScreen.jsx";
 import WorkspaceView from "./workspace/WorkspaceView.jsx";
-import LandingPage from "./landing/LandingPage.jsx";  // ← new
+import LandingPage from "./landing/LandingPage.jsx";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [currentView, setCurrentView] = useState("landing"); // ← changed from "home"
+  const [currentView, setCurrentView] = useState("landing");
   const [repoUrl, setRepoUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +25,7 @@ function App() {
           if (data.userId) {
             setIsAuthenticated(true);
             setUserEmail(email);
-            setCurrentView("home"); // ← skip landing if already logged in
+            setCurrentView("home");
           } else {
             localStorage.removeItem('token');
             localStorage.removeItem('userEmail');
@@ -56,7 +55,7 @@ function App() {
     setIsAuthenticated(false);
     setUserEmail("");
     setRepoUrl("");
-    setCurrentView("landing"); // ← goes back to landing on logout
+    setCurrentView("landing");
   };
 
   const handleAnalyze = (url) => {
@@ -81,22 +80,18 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallback onLogin={handleLogin} />} />
-        <Route path="*" element={
-          !isAuthenticated ? (
-            currentView === "landing" ? (
-              <LandingPage
-                onGetStarted={() => setCurrentView("auth")}
-                onSignIn={() => setCurrentView("auth")}
-              />
+        <Route
+          path="*"
+          element={
+            !isAuthenticated ? (
+              <LandingPage onLogin={handleLogin} onLogout={handleLogout} />
+            ) : currentView === "home" ? (
+              <HomeScreen onAnalyze={handleAnalyze} userEmail={userEmail} onLogout={handleLogout} />
             ) : (
-              <AuthScreen onLogin={handleLogin} onLogout={handleLogout} />
+              <WorkspaceView repoUrl={repoUrl} userEmail={userEmail} onLogout={handleLogout} onGoHome={handleGoHome} />
             )
-          ) : currentView === "home" ? (
-            <HomeScreen onAnalyze={handleAnalyze} userEmail={userEmail} onLogout={handleLogout} />
-          ) : (
-            <WorkspaceView repoUrl={repoUrl} userEmail={userEmail} onLogout={handleLogout} onGoHome={handleGoHome} />
-          )
-        } />
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
