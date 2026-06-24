@@ -19,9 +19,11 @@ router.get(
   "/google",
   passport.authenticate("google", { 
     scope: ["email", "profile"],
-    session: false //  Explicitly disable session
+    session: false,
+    prompt: "select_account"   // ← only change
   })
 );
+config/g
 
 router.get(
   "/google/callback",

@@ -17,14 +17,12 @@ passport.use(
         let user = await User.findOne({ email });
 
         if (!user) {
-          // User doesn't exist - returns error to redirect to signup
           return done(null, false, { 
             message: 'no_account',
             email: email
           });
         }
 
-        // User exists - links Google ID if not already linked
         if (!user.googleId) {
           user.googleId = profile.id;
           await user.save();
