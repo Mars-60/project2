@@ -8,7 +8,7 @@ console.log("🔑 Groq API Key exists:", !!process.env.GROQ_API_KEY);
 
 exports.generateFileIntelligence = async (code) => {
   const response = await client.chat.completions.create({
-    model: "llama-3.1-8b-instant",
+    model: "gpt-oss-20b",
     messages: [
       {
         role: "system",
@@ -121,7 +121,7 @@ exports.answerQuestion = async (intelligence, question) => {
   console.log("📝 Question:", question);
   
   const response = await client.chat.completions.create({
-    model: "llama-3.1-8b-instant",
+    model: "gpt-oss-20b",
     messages: [
       {
         role: "system",
@@ -151,7 +151,7 @@ When answering questions:
 // NEW: Much better streaming with proper formatting
 exports.answerQuestionStream = async function* (code, question) {
   const completion = await client.chat.completions.create({
-    model: "llama-3.1-8b-instant",
+    model: "gpt-oss-20b",
     messages: [
       {
         role: "system",
@@ -185,7 +185,7 @@ Make your response visually clean and well-organized.`
 // Repo-level question answering
 exports.answerRepoQuestion = async (repoTree, question) => {
   const response = await client.chat.completions.create({
-    model: "llama-3.1-8b-instant",
+    model: "gpt-oss-20b",
     messages: [
       {
         role: "system",
